@@ -5,6 +5,7 @@ import { logger } from './logger.js';
 import { requestId } from './middleware/requestId.js';
 import { errorHandler } from './middleware/error.js';
 import { sessionMiddleware } from './lib/sessionStore.js';
+import { authLimiter, apiLimiter } from './middleware/rateLimit.js';
 import { health } from './routes/health.js';
 import { auth } from './routes/auth.js';
 import { scans } from './routes/scans.js';
@@ -21,10 +22,10 @@ export function buildApp() {
   app.use(express.json({ limit: '100kb' }));
   app.use(sessionMiddleware);
   app.use('/', health);
-  app.use('/api/auth', auth);
-  app.use('/api/scans', scans);
-  app.use('/api/scans', scanEvents);
-  app.use('/api/scans', messages);
+  app.use('/api/auth', authLimiter, auth);
+  app.use('/api/scans', apiLimiter, scans);
+  app.use('/api/scans', apiLimiter, scanEvents);
+  app.use('/api/scans', apiLimiter, messages);
   app.use(errorHandler);
   return app;
 }

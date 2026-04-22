@@ -111,3 +111,114 @@ describe('POST /api/scans', () => {
     expect(res.status).toBe(404);
   });
 });
+
+describe('GET /api/scans/:id/events', () => {
+  it('streams a result event once VT analysis completes', async () => {
+    let polls = 0;
+    server.use(
+      http.post('https://www.virustotal.com/api/v3/files', () =>
+        HttpResponse.json({ data: { id: 'a-sse' } }),
+      ),
+      http.get('https://www.virustotal.com/api/v3/analyses/a-sse', () => {
+        polls++;
+        if (polls < 2) {
+          return HttpResponse.json({
+            data: {
+              id: 'a-sse',
+              attributes: {
+                status: 'queued',
+                stats: { malicious: 0, suspicious: 0, undetected: 0, harmless: 0 },
+              },
+            },
+          });
+        }
+        return HttpResponse.json({
+          data: {
+            id: 'a-sse',
+            attributes: {
+              status: 'completed',
+              stats: { malicious: 2, suspicious: 0, undetected: 50, harmless: 0 },
+              results: {},
+            },
+          },
+        });
+      }),
+    );
+    const agent = await signup();
+    const up = await agent.post('/api/scans').attach('file', Buffer.from('x'), 'x.js');
+    const scanId = up.body.scanId as number;
+
+    const res = await agent
+      .get(`/api/scans/${scanId}/events`)
+      .buffer(true)
+      .parse((r, cb) => {
+        let data = '';
+        r.on('data', (c: Buffer) => (data += c.toString()));
+        r.on('end', () => cb(null, data));
+      });
+    expect(res.status).toBe(200);
+    expect(String(res.body)).toContain('event: result');
+    expect(String(res.body)).toContain('"status":"completed"');
+  }, 30_000);
+
+  it('emits result immediately if scan is already completed in DB', async () => {
+    // Pre-populate a completed scan by running one full cycle first
+    server.use(
+      http.post('https://www.virustotal.com/api/v3/files', () =>
+        HttpResponse.json({ data: { id: 'a-done' } }),
+      ),
+      http.get('https://www.virustotal.com/api/v3/analyses/a-done', () =>
+        HttpResponse.json({
+          data: {
+            id: 'a-done',
+            attributes: {
+              status: 'completed',
+              stats: { malicious: 0, suspicious: 0, undetected: 1, harmless: 0 },
+              results: {},
+            },
+          },
+        }),
+      ),
+    );
+    const agent = await signup();
+    const up = await agent.post('/api/scans').attach('file', Buffer.from('y'), 'y.js');
+    const scanId = up.body.scanId as number;
+
+    // First SSE: completes via polling and updates DB
+    const first = await agent
+      .get(`/api/scans/${scanId}/events`)
+      .buffer(true)
+      .parse((r, cb) => {
+        let d = '';
+        r.on('data', (c: Buffer) => (d += c.toString()));
+        r.on('end', () => cb(null, d));
+      });
+    expect(String(first.body)).toContain('event: result');
+
+    // Second SSE: should short-circuit from DB state, no VT polling
+    const second = await agent
+      .get(`/api/scans/${scanId}/events`)
+      .buffer(true)
+      .parse((r, cb) => {
+        let d = '';
+        r.on('data', (c: Buffer) => (d += c.toString()));
+        r.on('end', () => cb(null, d));
+      });
+    expect(String(second.body)).toContain('event: result');
+  }, 30_000);
+
+  it('404s if scan does not belong to the user', async () => {
+    server.use(
+      http.post('https://www.virustotal.com/api/v3/files', () =>
+        HttpResponse.json({ data: { id: 'a-owner' } }),
+      ),
+    );
+    const userA = await signup();
+    const up = await userA.post('/api/scans').attach('file', Buffer.from('z'), 'z.js');
+    const scanId = up.body.scanId as number;
+
+    const userB = await signup();
+    const res = await userB.get(`/api/scans/${scanId}/events`);
+    expect(res.status).toBe(404);
+  });
+});

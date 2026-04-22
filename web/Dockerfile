@@ -18,6 +18,11 @@ RUN addgroup -S app && adduser -S app -G app
 WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
+# Next.js standalone defaults to binding to the container hostname, which
+# prevents 127.0.0.1 (used by the healthcheck and local tooling) from
+# reaching the server. Binding to all interfaces fixes both.
+ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public

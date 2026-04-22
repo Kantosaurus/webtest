@@ -1,0 +1,28 @@
+# deps & build
+node_modules/
+.next/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# editor / os
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# tests
+playwright-report/
+test-results/
+
+# logs
+*.log
+npm-debug.log*

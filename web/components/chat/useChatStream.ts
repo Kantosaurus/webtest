@@ -57,7 +57,9 @@ export function useChatStream(scanId: string) {
             }
           }
         }
-        setState({ streaming: false, draft: '', error: null });
+        // Preserve any error set by an SSE `error` event. Using a functional
+        // updater rather than a fresh object so state.error survives stream end.
+        setState((s) => ({ ...s, streaming: false, draft: '' }));
         return finalMsg;
       } catch (err) {
         if (err instanceof DOMException && err.name === 'AbortError') {
@@ -81,5 +83,9 @@ export function useChatStream(scanId: string) {
     controllerRef.current?.abort();
   }, []);
 
-  return { ...state, send, stop };
+  const clearError = React.useCallback(() => {
+    setState((s) => ({ ...s, error: null }));
+  }, []);
+
+  return { ...state, send, stop, clearError };
 }

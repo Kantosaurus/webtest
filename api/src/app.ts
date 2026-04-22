@@ -7,6 +7,7 @@ import { errorHandler } from './middleware/error.js';
 import { sessionMiddleware } from './lib/sessionStore.js';
 import { health } from './routes/health.js';
 import { auth } from './routes/auth.js';
+import { scans } from './routes/scans.js';
 
 export function buildApp() {
   const app = express();
@@ -19,6 +20,7 @@ export function buildApp() {
   app.use(sessionMiddleware);
   app.use('/', health);
   app.use('/api/auth', auth);
+  app.use('/api/scans', scans);
   app.use(errorHandler);
   return app;
 }

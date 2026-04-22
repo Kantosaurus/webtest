@@ -31,14 +31,13 @@ export async function uploadToVt(opts: {
   });
   // form-data is a Node stream; fetch (undici) accepts it as a body and will
   // stream it through without buffering the full payload in memory.
-  const res = await fetch(`${VT_BASE}/files`, {
+  const init = {
     method: 'POST',
     headers: { ...form.getHeaders(), 'x-apikey': opts.apiKey, accept: 'application/json' },
-    // @ts-expect-error undici's fetch accepts Node.js Readable streams as body
     body: form,
-    // @ts-expect-error undici-specific option to allow streaming request body
     duplex: 'half',
-  });
+  } as unknown as RequestInit;
+  const res = await fetch(`${VT_BASE}/files`, init);
   const json = (await res.json()) as {
     data?: { id?: string };
     error?: { message?: string };

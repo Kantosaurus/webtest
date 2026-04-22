@@ -10,7 +10,7 @@ import { MessageList } from './MessageList';
 import { Composer } from './Composer';
 import { useChatStream } from './useChatStream';
 
-export function ChatPanel({ scanId }: { scanId: number }) {
+export function ChatPanel({ scanId }: { scanId: string }) {
   const qc = useQueryClient();
   const { data: messages = [] } = useQuery({
     queryKey: ['messages', scanId],
@@ -24,7 +24,7 @@ export function ChatPanel({ scanId }: { scanId: number }) {
       qc.setQueryData<Message[]>(['messages', scanId], (cur) => [
         ...(cur ?? []),
         {
-          id: -Date.now(),
+          id: `pending-${Date.now()}`,
           scanId,
           role: 'user',
           content,

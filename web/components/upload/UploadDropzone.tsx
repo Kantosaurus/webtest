@@ -7,7 +7,7 @@ import { UploadCloud, Loader2 } from 'lucide-react';
 
 const MAX = 32 * 1024 * 1024;
 
-async function uploadFile(file: File): Promise<{ scanId: number }> {
+async function uploadFile(file: File): Promise<{ scanId: string }> {
   const form = new FormData();
   form.append('file', file);
   const res = await fetch('/api/scans', {
@@ -19,7 +19,7 @@ async function uploadFile(file: File): Promise<{ scanId: number }> {
     const body = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
     throw new Error(body.error?.message ?? `Upload failed (${res.status})`);
   }
-  return (await res.json()) as { scanId: number };
+  return (await res.json()) as { scanId: string };
 }
 
 export function UploadDropzone() {

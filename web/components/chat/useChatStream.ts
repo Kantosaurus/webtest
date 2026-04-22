@@ -8,7 +8,7 @@ interface StreamState {
   error: string | null;
 }
 
-export function useChatStream(scanId: number) {
+export function useChatStream(scanId: string) {
   const [state, setState] = React.useState<StreamState>({
     streaming: false,
     draft: '',
@@ -17,7 +17,7 @@ export function useChatStream(scanId: number) {
   const controllerRef = React.useRef<AbortController | null>(null);
 
   const send = React.useCallback(
-    async (content: string): Promise<{ msgId: number; fullText: string } | null> => {
+    async (content: string): Promise<{ msgId: string; fullText: string } | null> => {
       const controller = new AbortController();
       controllerRef.current = controller;
       setState({ streaming: true, draft: '', error: null });
@@ -33,7 +33,7 @@ export function useChatStream(scanId: number) {
           setState({ streaming: false, draft: '', error: `HTTP ${res.status}` });
           return null;
         }
-        let finalMsg: { msgId: number; fullText: string } | null = null;
+        let finalMsg: { msgId: string; fullText: string } | null = null;
         for await (const evt of readSse(res, controller.signal)) {
           if (evt.event === 'token') {
             try {
@@ -44,7 +44,7 @@ export function useChatStream(scanId: number) {
             }
           } else if (evt.event === 'done') {
             try {
-              finalMsg = JSON.parse(evt.data) as { msgId: number; fullText: string };
+              finalMsg = JSON.parse(evt.data) as { msgId: string; fullText: string };
             } catch {
               /* ignore */
             }

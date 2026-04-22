@@ -1,10 +1,5 @@
-export interface User {
-  id: number;
-  email: string;
-}
-
 export interface Scan {
-  id: number;
+  id: string;
   fileName: string;
   fileSha256?: string;
   fileSize?: number;
@@ -15,8 +10,8 @@ export interface Scan {
 }
 
 export interface Message {
-  id: number;
-  scanId: number;
+  id: string;
+  scanId: string;
   role: 'user' | 'assistant';
   content: string;
   createdAt: string;

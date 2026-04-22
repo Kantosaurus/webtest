@@ -7,7 +7,7 @@ export function ScanProgress({
   scanId,
   initialStatus,
 }: {
-  scanId: number;
+  scanId: string;
   initialStatus: string;
 }) {
   const [status, setStatus] = React.useState(initialStatus);

@@ -1,47 +1,47 @@
-import { pool } from '../db/pool.js';
+import { randomUUID } from 'node:crypto';
 
 export interface Message {
-  id: number;
-  scanId: number;
+  id: string;
+  scanId: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
   createdAt: Date;
 }
 
-function toMessage(row: Record<string, unknown>): Message {
-  return {
-    id: Number(row.id),
-    scanId: Number(row.scan_id),
-    role: row.role as Message['role'],
-    content: row.content as string,
-    createdAt: row.created_at as Date,
-  };
+const conversations = new Map<string, Message[]>();
+
+export function listMessages(scanId: string): Message[] {
+  return (conversations.get(scanId) ?? []).filter((m) => m.role !== 'system');
 }
 
-export async function listMessagesForScan(scanId: number): Promise<Message[]> {
-  const { rows } = await pool.query(
-    `SELECT * FROM messages WHERE scan_id = $1 AND role <> 'system' ORDER BY created_at ASC`,
-    [scanId],
-  );
-  return rows.map(toMessage);
-}
-
-export async function insertMessage(input: {
-  scanId: number;
+export function appendMessage(input: {
+  scanId: string;
   role: Message['role'];
   content: string;
-}): Promise<Message> {
-  const { rows } = await pool.query(
-    `INSERT INTO messages (scan_id, role, content) VALUES ($1,$2,$3) RETURNING *`,
-    [input.scanId, input.role, input.content],
-  );
-  return toMessage(rows[0]!);
+}): Message {
+  const msg: Message = {
+    id: randomUUID(),
+    scanId: input.scanId,
+    role: input.role,
+    content: input.content,
+    createdAt: new Date(),
+  };
+  const list = conversations.get(input.scanId);
+  if (list) list.push(msg);
+  else conversations.set(input.scanId, [msg]);
+  return msg;
 }
 
-export async function deleteMessage(id: number, scanId: number): Promise<boolean> {
-  const { rowCount } = await pool.query(
-    `DELETE FROM messages WHERE id = $1 AND scan_id = $2`,
-    [id, scanId],
-  );
-  return (rowCount ?? 0) > 0;
+export function removeMessage(id: string, scanId: string): boolean {
+  const list = conversations.get(scanId);
+  if (!list) return false;
+  const i = list.findIndex((m) => m.id === id);
+  if (i === -1) return false;
+  list.splice(i, 1);
+  return true;
+}
+
+// Called when a scan is evicted from the in-memory scans store.
+export function dropConversation(scanId: string): void {
+  conversations.delete(scanId);
 }

@@ -5,8 +5,6 @@ const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
   API_PORT: z.coerce.number().int().positive().default(4000),
-  DATABASE_URL: z.string().url(),
-  SESSION_SECRET: z.string().min(32),
   VT_API_KEY: z.string().min(1),
   GEMINI_API_KEY: z.string().min(1),
   PUBLIC_HOSTNAME: z.string().default('localhost'),

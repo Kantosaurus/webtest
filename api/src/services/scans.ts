@@ -1,8 +1,7 @@
-import { pool } from '../db/pool.js';
+import { randomUUID } from 'node:crypto';
 
 export interface Scan {
-  id: number;
-  userId: number;
+  id: string;
   vtAnalysisId: string;
   fileName: string;
   fileSha256: string;
@@ -13,59 +12,55 @@ export interface Scan {
   updatedAt: Date;
 }
 
-function toScan(row: Record<string, unknown>): Scan {
-  return {
-    id: Number(row.id),
-    userId: Number(row.user_id),
-    vtAnalysisId: row.vt_analysis_id as string,
-    fileName: row.file_name as string,
-    fileSha256: row.file_sha256 as string,
-    fileSize: Number(row.file_size),
-    status: row.status as Scan['status'],
-    result: row.result,
-    createdAt: row.created_at as Date,
-    updatedAt: row.updated_at as Date,
-  };
+// Bounded in-memory store. Oldest entries evicted once MAX_SCANS is reached
+// so the API doesn't grow unbounded on a long-running process.
+const MAX_SCANS = 500;
+const scans = new Map<string, Scan>();
+
+function evictIfFull(): void {
+  while (scans.size >= MAX_SCANS) {
+    const oldest = scans.keys().next().value;
+    if (oldest === undefined) return;
+    scans.delete(oldest);
+  }
 }
 
-export async function insertScan(input: {
-  userId: number;
+export function createScan(input: {
   vtAnalysisId: string;
   fileName: string;
   fileSha256: string;
   fileSize: number;
-}): Promise<Scan> {
-  const { rows } = await pool.query(
-    `INSERT INTO scans (user_id, vt_analysis_id, file_name, file_sha256, file_size, status)
-     VALUES ($1,$2,$3,$4,$5,'queued') RETURNING *`,
-    [input.userId, input.vtAnalysisId, input.fileName, input.fileSha256, input.fileSize],
-  );
-  return toScan(rows[0]!);
+}): Scan {
+  evictIfFull();
+  const now = new Date();
+  const scan: Scan = {
+    id: randomUUID(),
+    vtAnalysisId: input.vtAnalysisId,
+    fileName: input.fileName,
+    fileSha256: input.fileSha256,
+    fileSize: input.fileSize,
+    status: 'queued',
+    result: null,
+    createdAt: now,
+    updatedAt: now,
+  };
+  scans.set(scan.id, scan);
+  return scan;
 }
 
-export async function updateScanStatus(
-  id: number,
-  status: Scan['status'],
-  result?: unknown,
-): Promise<void> {
-  await pool.query(
-    `UPDATE scans SET status = $2, result = COALESCE($3, result), updated_at = now() WHERE id = $1`,
-    [id, status, result == null ? null : JSON.stringify(result)],
-  );
+export function getScan(id: string): Scan | null {
+  return scans.get(id) ?? null;
 }
 
-export async function getScanForUser(id: number, userId: number): Promise<Scan | null> {
-  const { rows } = await pool.query(
-    `SELECT * FROM scans WHERE id = $1 AND user_id = $2`,
-    [id, userId],
-  );
-  return rows[0] ? toScan(rows[0]) : null;
+export function updateScanStatus(id: string, status: Scan['status'], result?: unknown): void {
+  const scan = scans.get(id);
+  if (!scan) return;
+  scan.status = status;
+  if (result !== undefined) scan.result = result;
+  scan.updatedAt = new Date();
 }
 
-export async function listScansForUser(userId: number, limit = 50): Promise<Scan[]> {
-  const { rows } = await pool.query(
-    `SELECT * FROM scans WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2`,
-    [userId, limit],
-  );
-  return rows.map(toScan);
+// Test-only helper — NOT exported through any route. Unit tests can import it.
+export function __resetForTests(): void {
+  scans.clear();
 }

@@ -11,7 +11,6 @@ COPY package.json package-lock.json ./
 RUN npm ci
 COPY tsconfig.json ./
 COPY src ./src
-COPY migrations ./migrations
 RUN npm run build
 
 # ---- runtime ----
@@ -21,7 +20,6 @@ WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
-COPY --from=build /app/migrations ./migrations
 COPY package.json ./
 USER app
 EXPOSE 4000

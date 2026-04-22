@@ -7,14 +7,6 @@ const jsonError = (code: string, message: string) => ({
   error: { code, message },
 });
 
-export const authLimiter = rateLimit({
-  windowMs: 60_000,
-  limit: isTest ? 10_000 : 10,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  message: jsonError('RATE_LIMITED', 'Too many requests'),
-});
-
 export const apiLimiter = rateLimit({
   windowMs: 60_000,
   limit: isTest ? 10_000 : 30,

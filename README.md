@@ -1,115 +1,156 @@
-# **CloudsineAI: WebTest Take-Home Assignment**
+# VirusTotal + Gemini File Scanner
 
-*"Clean code always looks like it was written by someone who cares."*  
-— **Robert C. Martin**, *Author of Clean Code*
+A small, production-shaped web app that lets an authenticated user upload a file, scans it with VirusTotal, streams the result back via Server-Sent Events, and lets the user chat with a Gemini-powered assistant that explains the result in plain language.
 
-Welcome to the CloudsineAI take-home assignment! This project will help us evaluate your coding skills, problem-solving abilities, and design process. Let's get started!
-
----
-
-## **Objective**
-The goal of this assignment is to create a functional web application with GenAI hosted on **AWS EC2**. The application will integrate with the VirusTotal API to securely upload and scan files for malware or viruses.  Integrate with a free GenAI app such as Gemini API to explain the results to a lay end user.  
+Built as a take-home for CloudsineAI. The assignment prompt lives at [`docs/assignment.md`](docs/assignment.md).
 
 ---
 
-## **Features**
-1. **File Upload and Scanning**: Build a web interface that allows users to upload files and scan them using the [VirusTotal API](https://docs.virustotal.com/reference/overview).
-2. **Result Display**: Present the scan results dynamically and clearly on the webpage.
-3. **GenAI Integration**: Integrate with a LLM to explain the results to a lay end user
-4. **Customizable Design**: Add enhancements or optimizations to showcase your skills.
+## Stack
+
+**Frontend** — Next.js 15 (App Router) · React 19 · TypeScript · Tailwind · Shadcn UI · TanStack Query · `react-markdown` + `remark-gfm` + `rehype-highlight`
+**Backend** — Node.js 22 · Express · TypeScript · `busboy` + `form-data` (streaming upload) · PostgreSQL 16 · `connect-pg-simple` sessions · `bcryptjs` · `@google/generative-ai` · `pino` · `express-rate-limit` · `zod`
+**Infra** — Docker Compose (Podman-compatible) · Caddy for auto-HTTPS · GitHub Actions CI+CD · AWS EC2
+**Tests** — Vitest (unit + integration via `@testcontainers/postgresql` + `msw`) · Playwright (e2e smoke)
 
 ---
 
-## **Assignment Steps**
+## Architecture
 
-### **Step 1: Set Up the Web Server on EC2**
-1. Launch an **AWS EC2 instance** to host your web application:
-   - Choose an appropriate instance type (e.g., t2.micro under the free tier) and configure the security group for web traffic (HTTP/HTTPS).  
-   - Install and configure your preferred web server software, such as **Apache**, **NGINX**, or any other of your choice.
-2. Ensure the instance is properly configured and accessible for hosting the web application.
+```
+┌─────────────────────────────────────────────────────────┐
+│  EC2 host (Ubuntu 24.04, t3.small)                      │
+│                                                         │
+│  ┌────────┐   ┌─────────┐   ┌─────────┐   ┌─────────┐   │
+│  │ caddy  │──▶│  web    │──▶│  api    │──▶│  db     │   │
+│  │ :80    │   │ Next.js │   │ Express │   │Postgres │   │
+│  │ :443   │   │ :3000   │   │ :4000   │   │ :5432   │   │
+│  └────────┘   └─────────┘   └─────────┘   └─────────┘   │
+│                                   │                     │
+│                                   ├──▶ VirusTotal API   │
+│                                   └──▶ Gemini API       │
+└─────────────────────────────────────────────────────────┘
+```
 
----
+Four services in one `docker-compose.yml`. Caddy terminates TLS (auto Let's Encrypt) and reverse-proxies to `web`. The browser talks to `web`, which rewrites `/api/*` to the internal `api:4000`. The `api` service streams uploads directly to VirusTotal (nothing touches disk), polls VT until the scan is terminal, persists results to Postgres, and streams Gemini responses token-by-token over SSE.
 
-### **Step 2: Develop the Web Application**
-1. **Core Functionality**:
-   - Implement a **file upload** feature with basic validation (e.g., file size/type).
-   - Integrate with the VirusTotal API to scan the uploaded files.
-   - Dynamically display the scan results on the webpage.
-2. **Preferred Programming Languages**:
-   - While **Golang** or **Python** are preferred, you may use any language or framework you are comfortable with.
-3. **Security Considerations**:
-   - Handle file uploads securely to prevent malicious file execution.
-   - Sanitize API requests and responses.
-
----
-
-### **Step 3: Test with Sample Files**
-1. Use the provided sample files in this repository to test your application.
-2. Verify that the scan results are displayed correctly after processing by the VirusTotal API.
+**Design decisions** — the full rationale lives in [`docs/superpowers/specs/2026-04-23-virustotal-scanner-design.md`](docs/superpowers/specs/2026-04-23-virustotal-scanner-design.md). The step-by-step plan that shaped the implementation lives at [`docs/superpowers/plans/2026-04-23-virustotal-scanner.md`](docs/superpowers/plans/2026-04-23-virustotal-scanner.md).
 
 ---
 
-## **Example Workflow**
-1. A user uploads a file through the web interface.
-2. The file is sent to the VirusTotal API for scanning.  
-3. The API processes the file and returns the results.  
-4. The scan results are displayed on the webpage in a user-friendly format.
-5. Include a button where the GenAI can elaborate on the scan results to a lay end user.
+## Quick start (local)
+
+```bash
+git clone <this repo>
+cd webtest
+cp .env.example .env
+# edit .env — at minimum fill in:
+#   SESSION_SECRET  (32+ random chars)
+#   VT_API_KEY      (free key from https://www.virustotal.com/gui/my-apikey)
+#   GEMINI_API_KEY  (free key from https://aistudio.google.com/apikey)
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+```
+
+Then visit **http://localhost:3000**. Register an account, drop one of the files in `files/` (e.g. `newegg_magecart_skimmer.js`) onto the upload zone, and watch the scan run.
+
+Works identically under Podman — replace `docker` with `podman` in the commands above. Images run as a non-root user and bind no privileged ports, so `podman compose` works without changes.
+
+### Environment variables
+
+| Name | Purpose |
+|---|---|
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | Postgres credentials |
+| `SESSION_SECRET` | Signing key for session cookies (≥32 chars, random) |
+| `VT_API_KEY` | VirusTotal v3 API key |
+| `GEMINI_API_KEY` | Google AI Studio (Gemini) API key |
+| `NODE_ENV`, `LOG_LEVEL` | `development` / `production`, pino level |
+| `PUBLIC_HOSTNAME`, `ACME_EMAIL` | Production Caddy — the hostname whose cert Let's Encrypt issues, and the contact email |
 
 ---
 
-## **Bonus Section: Optional Enhancements**
-Go the extra mile by implementing one or both of the following:
+## Testing
 
-### **1. Dockerization**
-- Create separate **Dockerfiles** for development and production environments.
-- Use **Docker Compose** to manage multi-container setups (e.g., integrating a PostgreSQL database).
-- Optimize image sizes and configurations for faster deployments.
+**API — unit + integration (34 tests)**
+```bash
+cd api && npm test
+```
+- Unit: streaming hash/byte-counter transforms, VirusTotal client (mocked via `msw`), SSE writer, Gemini prompt builder.
+- Integration: auth lifecycle, file upload happy-path + 32 MB reject + ownership isolation, SSE scan-events, chat persistence + streaming. Each integration spec spins up a real Postgres with `@testcontainers/postgresql` and applies the real migrations before running.
 
-### **2. CI/CD Pipeline**
-- Automate testing and deployments using a CI/CD pipeline (e.g., GitHub Actions or AWS CodePipeline).
-- Include integration tests to ensure file uploads and VirusTotal API calls function correctly.
-- Securely manage environment variables and secrets using tools like AWS Secrets Manager.
+**Web — Playwright e2e smoke (3 tests)**
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+cd web && E2E_BASE_URL=http://localhost:3000 npx playwright test
+```
+Covers: register → upload → see result; open scan → chat → streamed reply; logout → redirect to `/login`.
 
----
-
-## **Evaluation Criteria**
-You are free to use AI code assistants such as Cursor and Claude Code.  However, you are expected to be able to understand and explain most of the code.  
-
-Your submission will be assessed on:
-1. **Functionality**: Does the application meet the core requirements?  
-2. **Code Quality**: Is the code modular, maintainable, and well-documented?  
-3. **Problem-Solving**: How effectively did you address challenges and errors?  
-4. **Creativity**: Did you add enhancements or optimizations to improve the application?  
-5. **Presentation**: Is the solution polished and user-friendly?  
+**All of the above also run in CI** via `.github/workflows/ci.yml` on every push and PR.
 
 ---
 
-## **Resources**
-- [AWS EC2 Getting Started Guide](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/get-set-up-for-amazon-ec2.html)  
-- [VirusTotal API Documentation](https://docs.virustotal.com/reference/overview)  
-- [PostgreSQL Quick Start Guide](https://www.postgresql.org/docs/current/tutorial.html)  
-- [Gemini API Docs] https://ai.google.dev/gemini-api/docs
----
+## Deployment (AWS EC2)
 
-## **Submission Requirements**
-1. **Documentation**:
-   - Provide a detailed README explaining your setup process, challenges, and solutions.  
-2. **Source Code**:
-   - Share your codebase with clear instructions for running the application.  
-3. **Deployment**:
-   - Host your application on AWS EC2 and provide access for review.  
-4. **Discussion**:
-   - Be prepared to discuss your design choices, challenges faced, and any enhancements implemented.
+Auto-deploys to EC2 on every push to `main` via `.github/workflows/deploy.yml`. Images are built with `docker/build-push-action`, pushed to GHCR, and pulled on the host via SSH from a dedicated `deploy` user.
+
+See [`docs/deployment.md`](docs/deployment.md) for the one-time host bootstrap, required GitHub Actions secrets, and operational runbooks (logs, backups, rollback).
 
 ---
 
-## **Getting Started**
-1. Clone this repository and review the provided sample files.  
-2. Set up your AWS EC2 instance and deploy the web application.  
-3. Test the file upload and VirusTotal integration locally before deploying it to AWS.
+## Design rationale & trade-offs
+
+- **Stream uploads directly to VirusTotal.** The incoming multipart stream passes through a sha256 hasher and a byte counter and into the outbound request to VT. Nothing is written to disk. Defense-in-depth: a 32 MB limit is enforced at `busboy`, at the byte counter, and via `Content-Length` pre-check.
+- **SSE over long-polling.** Two natural fits for SSE: (1) scan progress (server polls VT, pushes `queued` / `running` / `result` events) and (2) Gemini token streaming. One uniform wire contract, no WebSocket ceremony.
+- **Postgres sessions, not JWT.** Logout actually invalidates credentials server-side. Uses `connect-pg-simple` against the existing `session` table.
+- **Ownership checks on every `:id` route.** Scoped to `WHERE user_id = $session.userId`, no IDOR. Cross-user access returns 404, not 403 — don't leak existence.
+- **Split `api` and `web` into separate containers.** Each image stays tight (no Next.js bundle in the API image, no Express deps in the web image). Clearer separation for review; independently scalable.
+- **Dark-first UI, OKLCH palette, Commissioner + Geist Mono.** The design DNA captured in `.impeccable.md` — "analytical instrument" aesthetic, restraint over decoration, typography-led hierarchy. No gradient text, no card-in-card, no glassmorphism.
 
 ---
 
-We look forward to seeing your innovative solutions and thoughtful designs!  
-**CloudsineAI Team**  
+## Known limitations
+
+- **VirusTotal free tier:** 4 requests/minute, 500/day. The server polls scan status at 2s; a single scan uses roughly 5–15 polls depending on how quickly VT completes. Concurrent uploads across users can exhaust the budget.
+- **No password reset or email verification.** Out of scope for this take-home.
+- **Single-instance rate limiting.** The in-memory `express-rate-limit` bucket per IP is fine for this demo. Moving to multi-instance would need Redis.
+- **Gemini conversation history is unbounded.** For very long chats the prompt grows until the model's context limit. Summarization of older turns would be the natural next step.
+- **Production `next.config.mjs` uses `output: 'standalone'`.** This fails at the `Collecting build traces` step on Windows without Developer Mode (Windows symlink policy) — Linux (CI + Docker) builds are unaffected.
+
+---
+
+## Repository layout
+
+```
+api/                  # Express + TypeScript backend
+  src/
+    routes/           # auth, scans, scanEvents (SSE), messages, health
+    services/         # virustotal, gemini, scans, messages
+    lib/              # errors, hash transforms, SSE writer, prompt builder, session store
+    middleware/       # auth, error, rateLimit, requestId
+    db/               # pg pool
+  migrations/         # numbered SQL files
+  tests/
+    unit/             # hash, virustotal, sse, promptBuilder
+    integration/      # auth, scans, messages (via @testcontainers/postgresql)
+web/                  # Next.js 15 App Router
+  app/
+    (auth)/           # login, register
+    (app)/            # dashboard, scans/[id]
+  components/
+    ui/               # shadcn primitives
+    auth/ upload/ scans/ chat/ nav/
+  lib/                # api client, sse reader, types
+  tests/e2e/          # playwright smoke
+scripts/              # bootstrap-ec2.sh, backup-db.sh
+docs/                 # assignment prompt + design spec + plan + deployment runbook
+files/                # sample test files (real malware + benign libs)
+.github/workflows/    # ci.yml, deploy.yml
+docker-compose.yml, docker-compose.dev.yml, docker-compose.prod.yml
+Caddyfile
+.env.example
+```
+
+---
+
+## Submission
+
+The assignment prompt is preserved at [`docs/assignment.md`](docs/assignment.md). This repository satisfies each of its requirements and implements both bonus sections (Dockerization with separate dev/prod configs, full CI/CD pipeline with auto-deploy).

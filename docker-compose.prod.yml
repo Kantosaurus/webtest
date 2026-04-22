@@ -1,0 +1,19 @@
+# Production override: use pre-built images from GHCR instead of building locally.
+# Used alongside docker-compose.yml:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Set API_IMAGE and WEB_IMAGE env vars to override the ':latest' default,
+# which is what the GHA deploy workflow does with ${{ github.sha }}.
+
+services:
+  api:
+    build: !reset null
+    image: ${API_IMAGE:-ghcr.io/owner/webtest-api:latest}
+
+  web:
+    build: !reset null
+    image: ${WEB_IMAGE:-ghcr.io/owner/webtest-web:latest}
+
+  migrate:
+    build: !reset null
+    image: ${API_IMAGE:-ghcr.io/owner/webtest-api:latest}

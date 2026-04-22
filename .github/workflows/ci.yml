@@ -1,0 +1,134 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: api · lint + typecheck + tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: api/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: Run vitest
+        run: npm test
+        env:
+          NODE_ENV: test
+
+  web:
+    name: web · lint + typecheck + build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+
+  e2e:
+    name: e2e · playwright against docker compose
+    runs-on: ubuntu-latest
+    needs: [api, web]
+    if: ${{ github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Check required secrets
+        id: check_secrets
+        env:
+          VT_API_KEY: ${{ secrets.VT_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          if [[ -z "$VT_API_KEY" || -z "$GEMINI_API_KEY" ]]; then
+            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Skipping e2e — VT_API_KEY or GEMINI_API_KEY secret missing"
+          else
+            echo "has_secrets=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create .env for compose
+        if: steps.check_secrets.outputs.has_secrets == 'true'
+        run: |
+          cp .env.example .env
+          sed -i 's/^SESSION_SECRET=.*/SESSION_SECRET=0123456789abcdef0123456789abcdef0123/' .env
+          sed -i "s#^VT_API_KEY=.*#VT_API_KEY=${{ secrets.VT_API_KEY }}#" .env
+          sed -i "s#^GEMINI_API_KEY=.*#GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}#" .env
+
+      - name: Boot stack
+        if: steps.check_secrets.outputs.has_secrets == 'true'
+        run: docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+
+      - name: Wait for web healthy
+        if: steps.check_secrets.outputs.has_secrets == 'true'
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:3000 > /dev/null; then
+              echo "web is up"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::web did not come up in 120s"
+          docker compose logs --no-color
+          exit 1
+
+      - name: Install playwright
+        if: steps.check_secrets.outputs.has_secrets == 'true'
+        working-directory: web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Run e2e
+        if: steps.check_secrets.outputs.has_secrets == 'true'
+        working-directory: web
+        env:
+          E2E_BASE_URL: http://localhost:3000
+          CI: 'true'
+        run: npx playwright test
+
+      - name: Upload playwright artifacts on failure
+        if: failure() && steps.check_secrets.outputs.has_secrets == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            web/playwright-report
+            web/test-results
+
+      - name: Stack logs on failure
+        if: failure() && steps.check_secrets.outputs.has_secrets == 'true'
+        run: docker compose logs --no-color
+
+      - name: Tear down
+        if: always() && steps.check_secrets.outputs.has_secrets == 'true'
+        run: docker compose down -v

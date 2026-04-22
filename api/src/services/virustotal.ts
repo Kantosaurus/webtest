@@ -1,5 +1,5 @@
 import FormData from 'form-data';
-import type { Readable } from 'node:stream';
+import { PassThrough, type Readable } from 'node:stream';
 
 const VT_BASE = 'https://www.virustotal.com/api/v3';
 
@@ -29,12 +29,15 @@ export async function uploadToVt(opts: {
     filename: opts.filename,
     contentType: opts.contentType ?? 'application/octet-stream',
   });
-  // form-data is a Node stream; fetch (undici) accepts it as a body and will
-  // stream it through without buffering the full payload in memory.
+  // form-data's CombinedStream emits a mix of Buffer and string chunks, which
+  // undici's fetch body consumer cannot handle natively. Pipe through a
+  // PassThrough (which emits only Buffers) so the body is correctly framed.
+  const body = new PassThrough();
+  form.pipe(body);
   const init = {
     method: 'POST',
     headers: { ...form.getHeaders(), 'x-apikey': opts.apiKey, accept: 'application/json' },
-    body: form,
+    body,
     duplex: 'half',
   } as unknown as RequestInit;
   const res = await fetch(`${VT_BASE}/files`, init);

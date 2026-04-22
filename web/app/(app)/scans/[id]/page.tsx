@@ -5,6 +5,7 @@ import { apiFetch } from '@/lib/api';
 import type { Scan } from '@/lib/types';
 import { ScanProgress } from '@/components/upload/ScanProgress';
 import { ScanResult } from '@/components/scans/ScanResult';
+import { ChatPanel } from '@/components/chat/ChatPanel';
 
 export default function ScanDetailPage() {
   const params = useParams<{ id: string }>();
@@ -33,14 +34,7 @@ export default function ScanDetailPage() {
       </div>
       <ScanProgress scanId={data.id} initialStatus={data.status} />
       <ScanResult scan={data} />
-      {data.status === 'completed' && (
-        <div
-          id="chat-slot"
-          className="rounded-md border border-dashed border-border p-4 text-sm text-muted-foreground"
-        >
-          Chat panel arrives in Phase 14.
-        </div>
-      )}
+      {data.status === 'completed' && <ChatPanel scanId={data.id} />}
     </div>
   );
 }

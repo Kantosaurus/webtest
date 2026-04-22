@@ -6,6 +6,7 @@ import { requestId } from './middleware/requestId.js';
 import { errorHandler } from './middleware/error.js';
 import { sessionMiddleware } from './lib/sessionStore.js';
 import { health } from './routes/health.js';
+import { auth } from './routes/auth.js';
 
 export function buildApp() {
   const app = express();
@@ -17,6 +18,7 @@ export function buildApp() {
   app.use(express.json({ limit: '100kb' }));
   app.use(sessionMiddleware);
   app.use('/', health);
+  app.use('/api/auth', auth);
   app.use(errorHandler);
   return app;
 }

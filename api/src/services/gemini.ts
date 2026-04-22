@@ -5,12 +5,17 @@ export interface GeminiClient {
   stream(prompt: GeminiPrompt, signal?: AbortSignal): AsyncGenerator<string>;
 }
 
-export function createGeminiClient(apiKey: string): GeminiClient {
-  const client = new GoogleGenerativeAI(apiKey);
+export interface CreateGeminiClientOpts {
+  apiKey: string;
+  model: string;
+}
+
+export function createGeminiClient(opts: CreateGeminiClientOpts): GeminiClient {
+  const client = new GoogleGenerativeAI(opts.apiKey);
   return {
     async *stream(prompt: GeminiPrompt, signal?: AbortSignal): AsyncGenerator<string> {
       const model = client.getGenerativeModel({
-        model: 'gemini-1.5-flash',
+        model: opts.model,
         systemInstruction: prompt.systemInstruction,
       });
       const result = await model.generateContentStream({ contents: prompt.contents });

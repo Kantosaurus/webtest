@@ -7,6 +7,10 @@ const schema = z.object({
   API_PORT: z.coerce.number().int().positive().default(4000),
   VT_API_KEY: z.string().min(1),
   GEMINI_API_KEY: z.string().min(1),
+  // Pin to a specific GA model by default so behavior is reproducible across
+  // deploys. See https://ai.google.dev/gemini-api/docs/models for the live
+  // list; if the default gets deprecated, override this without rebuilding.
+  GEMINI_MODEL: z.string().default('gemini-2.5-flash'),
   PUBLIC_HOSTNAME: z.string().default('localhost'),
 });
 

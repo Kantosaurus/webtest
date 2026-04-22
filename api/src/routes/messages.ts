@@ -79,7 +79,10 @@ const post: RequestHandler = async (req, res, next) => {
   const controller = new AbortController();
   req.on('close', () => controller.abort());
 
-  const client = createGeminiClient(config.GEMINI_API_KEY);
+  const client = createGeminiClient({
+    apiKey: config.GEMINI_API_KEY,
+    model: config.GEMINI_MODEL,
+  });
   let full = '';
   try {
     for await (const token of client.stream(prompt, controller.signal)) {

@@ -2,8 +2,23 @@
   email {$ACME_EMAIL}
 }
 
+# Production: auto-HTTPS for the configured public hostname.
+# Caddy redirects HTTP → HTTPS automatically for this specific host.
 {$PUBLIC_HOSTNAME} {
   encode gzip zstd
+  reverse_proxy web:3000 {
+    header_up Host {host}
+    header_up X-Real-IP {remote}
+    header_up X-Forwarded-For {remote}
+    header_up X-Forwarded-Proto {scheme}
+  }
+}
+
+# Local dev catch-all: any HTTP host that isn't the production domain
+# (e.g. http://localhost) is served plain HTTP from the web container.
+# Caddy prefers the more-specific {$PUBLIC_HOSTNAME} block over this one,
+# so production behavior is unaffected.
+:80 {
   reverse_proxy web:3000 {
     header_up Host {host}
     header_up X-Real-IP {remote}

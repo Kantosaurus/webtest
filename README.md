@@ -48,10 +48,17 @@ cp .env.example .env
 #   SESSION_SECRET  (32+ random chars)
 #   VT_API_KEY      (free key from https://www.virustotal.com/gui/my-apikey)
 #   GEMINI_API_KEY  (free key from https://aistudio.google.com/apikey)
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+docker compose up -d --build
 ```
 
-Then visit **http://localhost:3000**. Register an account, drop one of the files in `files/` (e.g. `newegg_magecart_skimmer.js`) onto the upload zone, and watch the scan run.
+Then visit **http://localhost** (Caddy fronts the app on port 80). Register an account, drop one of the files in `files/` (e.g. `newegg_magecart_skimmer.js`) onto the upload zone, and watch the scan run.
+
+If you also want the API and web services exposed on their own host ports (useful for backend debugging or running Playwright against `http://localhost:3000` directly), add the dev override:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build
+# web → localhost:3000, api → localhost:4000, db → localhost:5432
+```
 
 Works identically under Podman — replace `docker` with `podman` in the commands above. Images run as a non-root user and bind no privileged ports, so `podman compose` works without changes.
 

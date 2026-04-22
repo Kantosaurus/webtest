@@ -11,7 +11,7 @@ fi
 
 echo "-> Updating apt and installing base packages..."
 apt-get update
-apt-get install -y ca-certificates curl gnupg ufw cron
+apt-get install -y ca-certificates curl gnupg ufw
 
 echo "-> Installing Docker Engine + Compose plugin..."
 install -m 0755 -d /etc/apt/keyrings
@@ -47,20 +47,10 @@ echo "   Paste your GHA deploy public key into /home/deploy/.ssh/authorized_keys
 
 echo "-> Creating /opt/webtest workspace..."
 install -o deploy -g deploy -m 0755 -d /opt/webtest
-install -o deploy -g deploy -m 0755 -d /opt/webtest/backups
-
-echo "-> Installing nightly backup cron..."
-cat > /etc/cron.d/webtest-backup <<EOF
-# Daily Postgres dump at 03:00 UTC
-0 3 * * * deploy /opt/webtest/backup-db.sh >> /var/log/webtest-backup.log 2>&1
-EOF
-chmod 644 /etc/cron.d/webtest-backup
-touch /var/log/webtest-backup.log
-chown deploy:deploy /var/log/webtest-backup.log
 
 echo ""
 echo "Bootstrap complete. Next steps:"
 echo "  1. Paste your GHA deploy public key into /home/deploy/.ssh/authorized_keys"
-echo "  2. Copy docker-compose.yml, docker-compose.prod.yml, Caddyfile, backup-db.sh, and .env into /opt/webtest/"
-echo "  3. chmod 600 /opt/webtest/.env  (fill with real VT_API_KEY, GEMINI_API_KEY, SESSION_SECRET, PUBLIC_HOSTNAME)"
+echo "  2. Copy docker-compose.yml, docker-compose.prod.yml, Caddyfile, and .env into /opt/webtest/"
+echo "  3. chmod 600 /opt/webtest/.env  (fill with real VT_API_KEY, GEMINI_API_KEY, PUBLIC_HOSTNAME)"
 echo "  4. Push to main -- GHA deploy workflow will connect as 'deploy' and bring up the stack"

@@ -79,7 +79,6 @@ jobs:
         if: steps.check_secrets.outputs.has_secrets == 'true'
         run: |
           cp .env.example .env
-          sed -i 's/^SESSION_SECRET=.*/SESSION_SECRET=0123456789abcdef0123456789abcdef0123/' .env
           sed -i "s#^VT_API_KEY=.*#VT_API_KEY=${{ secrets.VT_API_KEY }}#" .env
           sed -i "s#^GEMINI_API_KEY=.*#GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}#" .env
 

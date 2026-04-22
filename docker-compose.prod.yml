@@ -13,7 +13,3 @@ services:
   web:
     build: !reset null
     image: ${WEB_IMAGE:-ghcr.io/owner/webtest-web:latest}
-
-  migrate:
-    build: !reset null
-    image: ${API_IMAGE:-ghcr.io/owner/webtest-api:latest}

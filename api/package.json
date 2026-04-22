@@ -14,7 +14,7 @@
     "test:watch": "vitest",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
-    "migrate": "node-pg-migrate -m migrations --schema public",
+    "migrate": "node-pg-migrate -m migrations",
     "migrate:up": "npm run migrate -- up",
     "migrate:create": "npm run migrate -- create"
   },

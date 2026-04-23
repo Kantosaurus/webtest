@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { dropConversation } from './messages.js';
 
 export interface Scan {
   id: string;
@@ -17,12 +18,35 @@ export interface Scan {
 const MAX_SCANS = 500;
 const scans = new Map<string, Scan>();
 
+export const TTL_MS = 60 * 60_000; // 1 hour
+const SWEEP_INTERVAL_MS = 5 * 60_000; // 5 minutes
+
+export function evict(id: string): void {
+  scans.delete(id);
+  dropConversation(id);
+}
+
 function evictIfFull(): void {
   while (scans.size >= MAX_SCANS) {
     const oldest = scans.keys().next().value;
     if (oldest === undefined) return;
-    scans.delete(oldest);
+    evict(oldest);
   }
+}
+
+export function sweepExpired(now: number = Date.now()): void {
+  for (const [id, scan] of scans.entries()) {
+    if (now - scan.updatedAt.getTime() > TTL_MS) {
+      evict(id);
+    }
+  }
+}
+
+// Start the background sweep. `.unref()` lets the process exit even if this
+// is the only active timer. Skipped under NODE_ENV=test so tests drive the
+// sweep explicitly with vi.setSystemTime + sweepExpired().
+if (process.env.NODE_ENV !== 'test') {
+  setInterval(() => sweepExpired(), SWEEP_INTERVAL_MS).unref();
 }
 
 export function createScan(input: {

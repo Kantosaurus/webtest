@@ -10,6 +10,8 @@ export interface Message {
 
 const conversations = new Map<string, Message[]>();
 
+const MAX_MESSAGES_PER_SCAN = 200;
+
 export function listMessages(scanId: string): Message[] {
   return (conversations.get(scanId) ?? []).filter((m) => m.role !== 'system');
 }
@@ -27,8 +29,12 @@ export function appendMessage(input: {
     createdAt: new Date(),
   };
   const list = conversations.get(input.scanId);
-  if (list) list.push(msg);
-  else conversations.set(input.scanId, [msg]);
+  if (list) {
+    list.push(msg);
+    while (list.length > MAX_MESSAGES_PER_SCAN) list.shift();
+  } else {
+    conversations.set(input.scanId, [msg]);
+  }
   return msg;
 }
 

@@ -2,6 +2,7 @@ import FormData from 'form-data';
 import { PassThrough, type Readable } from 'node:stream';
 import { withRetry } from '../lib/retry.js';
 import { vtRequestTotal } from './metrics.js';
+import { logger } from '../logger.js';
 
 const VT_BASE = 'https://www.virustotal.com/api/v3';
 
@@ -60,6 +61,7 @@ export async function uploadToVt(opts: {
   filename: string;
   stream: Readable;
   contentType?: string;
+  reqId?: string;
 }): Promise<string> {
   // Buffer the stream into memory so retries can re-send the same bytes.
   // Max upload size is capped at 32MB upstream, so worst-case memory use is
@@ -97,6 +99,10 @@ export async function uploadToVt(opts: {
         throw new VtAlreadySubmittedError(json?.error?.message ?? 'already being scanned');
       }
       if (!res.ok) {
+        logger.warn(
+          { reqId: opts.reqId, status: res.status, endpoint: 'vt-files' },
+          'VT http error',
+        );
         throw new VtHttpError(
           res.status,
           `VT upload failed: ${res.status} ${json?.error?.message ?? ''}`,
@@ -126,6 +132,7 @@ export interface FileByHashResult {
 export async function getFileByHash(opts: {
   apiKey: string;
   hash: string;
+  reqId?: string;
 }): Promise<FileByHashResult | null> {
   return withRetry(
     async () => {
@@ -144,6 +151,10 @@ export async function getFileByHash(opts: {
         error?: { message?: string };
       };
       if (!res.ok) {
+        logger.warn(
+          { reqId: opts.reqId, status: res.status, endpoint: 'vt-file-by-hash' },
+          'VT http error',
+        );
         throw new VtHttpError(
           res.status,
           `VT file lookup failed: ${res.status} ${json?.error?.message ?? ''}`,
@@ -166,6 +177,7 @@ export async function getFileByHash(opts: {
 export async function getAnalysis(opts: {
   apiKey: string;
   analysisId: string;
+  reqId?: string;
 }): Promise<Analysis> {
   return withRetry(
     async () => {
@@ -184,6 +196,10 @@ export async function getAnalysis(opts: {
         error?: { message?: string };
       };
       if (!res.ok) {
+        logger.warn(
+          { reqId: opts.reqId, status: res.status, endpoint: 'vt-analyses' },
+          'VT http error',
+        );
         throw new VtHttpError(
           res.status,
           `VT analysis fetch failed: ${res.status} ${json?.error?.message ?? ''}`,

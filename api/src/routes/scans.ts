@@ -79,6 +79,7 @@ const uploadHandler: RequestHandler = (req, res, next) => {
             filename: info.filename || 'upload.bin',
             stream: passthrough,
             contentType: info.mimeType,
+            reqId: req.requestId,
           });
         } catch (err) {
           if (!(err instanceof VtAlreadySubmittedError)) throw err;
@@ -93,6 +94,7 @@ const uploadHandler: RequestHandler = (req, res, next) => {
           const existing = await getFileByHash({
             apiKey: config.VT_API_KEY,
             hash: sha256,
+            reqId: req.requestId,
           });
           if (!existing) {
             throw Errors.scanFailed(

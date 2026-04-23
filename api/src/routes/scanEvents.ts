@@ -41,6 +41,7 @@ const events: RequestHandler = async (req, res, next) => {
       const a = await getAnalysis({
         apiKey: config.VT_API_KEY,
         analysisId: scan.vtAnalysisId,
+        reqId: req.requestId,
       });
       if (a.status === 'completed') {
         updateScanStatus(scan.id, 'completed', a.raw);

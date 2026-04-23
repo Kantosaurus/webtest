@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { GeminiPrompt } from '../lib/promptBuilder.js';
+import { logger } from '../logger.js';
 
 export interface GeminiClient {
   stream(prompt: GeminiPrompt, signal?: AbortSignal): AsyncGenerator<string>;
@@ -8,6 +9,7 @@ export interface GeminiClient {
 export interface CreateGeminiClientOpts {
   apiKey: string;
   model: string;
+  reqId?: string;
 }
 
 export function createGeminiClient(opts: CreateGeminiClientOpts): GeminiClient {
@@ -21,8 +23,13 @@ export function createGeminiClient(opts: CreateGeminiClientOpts): GeminiClient {
       const result = await model.generateContentStream({ contents: prompt.contents });
       for await (const chunk of result.stream) {
         if (signal?.aborted) return;
-        const text = chunk.text();
-        if (text) yield text;
+        try {
+          const text = chunk.text();
+          if (text) yield text;
+        } catch (err) {
+          logger.warn({ err, reqId: opts.reqId }, 'gemini chunk error');
+          throw err;
+        }
       }
     },
   };

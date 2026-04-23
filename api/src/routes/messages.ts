@@ -85,6 +85,7 @@ const post: RequestHandler = async (req, res, next) => {
   const client = resolveGeminiFactory()({
     apiKey: config.GEMINI_API_KEY,
     model: config.GEMINI_MODEL,
+    reqId: req.requestId,
   });
   let full = '';
   const streamStart = Date.now();

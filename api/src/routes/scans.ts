@@ -11,6 +11,7 @@ import {
 } from '../services/virustotal.js';
 import { createScan, getScan, updateScanStatus } from '../services/scans.js';
 import { buckets } from '../middleware/rateLimits.js';
+import { uploadTotal, uploadDuration } from '../services/metrics.js';
 
 export const scans = Router();
 
@@ -38,10 +39,13 @@ const uploadHandler: RequestHandler = (req, res, next) => {
   const bb = Busboy({ headers: req.headers, limits: { files: 1, fileSize: MAX_BYTES } });
   let handled = false;
   let sawFile = false;
+  const endTimer = uploadDuration.startTimer();
 
   const fail = (err: Error): void => {
     if (handled) return;
     handled = true;
+    uploadTotal.inc({ result: 'rejected' });
+    endTimer();
     req.unpipe(bb);
     req.on('data', () => undefined);
     next(err);
@@ -123,6 +127,8 @@ const uploadHandler: RequestHandler = (req, res, next) => {
 
         if (handled) return;
         handled = true;
+        uploadTotal.inc({ result: 'accepted' });
+        endTimer();
         res.status(202).json({
           scanId: scan.id,
           analysisId,

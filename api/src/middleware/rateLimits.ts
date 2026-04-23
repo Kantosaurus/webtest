@@ -1,4 +1,5 @@
 import rateLimit, { type Options } from 'express-rate-limit';
+import { rateLimitRejectedTotal } from '../services/metrics.js';
 
 const isTest = process.env.NODE_ENV === 'test';
 
@@ -19,8 +20,13 @@ export function createBucket(spec: BucketSpec): ReturnType<typeof rateLimit> {
     limit: spec.max,
     standardHeaders: 'draft-7',
     legacyHeaders: false,
-    message: jsonError('RATE_LIMITED', `Rate limit exceeded for ${spec.name}`),
     skipSuccessfulRequests: spec.skipSuccessfulRequests ?? false,
+    handler: (_req, res, _next, optionsUsed) => {
+      rateLimitRejectedTotal.inc({ bucket: spec.name });
+      res
+        .status(optionsUsed.statusCode)
+        .json(jsonError('RATE_LIMITED', `Rate limit exceeded for ${spec.name}`));
+    },
   };
   return rateLimit(options);
 }

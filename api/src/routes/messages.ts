@@ -9,6 +9,7 @@ import { buildGeminiPrompt, type ScanContext } from '../lib/promptBuilder.js';
 import { resolveGeminiFactory } from '../services/gemini.js';
 import { logger } from '../logger.js';
 import { buckets } from '../middleware/rateLimits.js';
+import { chatMessagesTotal, geminiFirstTokenMs } from '../services/metrics.js';
 
 export const messages = Router();
 
@@ -63,6 +64,7 @@ const post: RequestHandler = async (req, res, next) => {
   if (!parsed.success) return next(Errors.validation('Invalid message'));
 
   const userMsg = appendMessage({ scanId: scan.id, role: 'user', content: parsed.data.content });
+  chatMessagesTotal.inc();
   const history = listMessages(scan.id)
     .filter((m) => m.id !== userMsg.id)
     .map((m) => ({
@@ -85,8 +87,14 @@ const post: RequestHandler = async (req, res, next) => {
     model: config.GEMINI_MODEL,
   });
   let full = '';
+  const streamStart = Date.now();
+  let firstTokenSeen = false;
   try {
     for await (const token of client.stream(prompt, controller.signal)) {
+      if (!firstTokenSeen) {
+        firstTokenSeen = true;
+        geminiFirstTokenMs.observe(Date.now() - streamStart);
+      }
       full += token;
       sse.event('token', { token });
     }

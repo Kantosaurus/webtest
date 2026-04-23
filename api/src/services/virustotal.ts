@@ -1,6 +1,7 @@
 import FormData from 'form-data';
 import { PassThrough, type Readable } from 'node:stream';
 import { withRetry } from '../lib/retry.js';
+import { vtRequestTotal } from './metrics.js';
 
 const VT_BASE = 'https://www.virustotal.com/api/v3';
 
@@ -46,6 +47,12 @@ class VtHttpError extends Error {
 const isVtTransient = (err: unknown): boolean => {
   if (!(err instanceof VtHttpError)) return false;
   return err.status === 429 || err.status >= 500;
+};
+
+const vtShouldRetry = (err: unknown): boolean => {
+  const retryable = isVtTransient(err);
+  vtRequestTotal.inc({ outcome: retryable ? 'retry' : 'fail' });
+  return retryable;
 };
 
 export async function uploadToVt(opts: {
@@ -97,9 +104,10 @@ export async function uploadToVt(opts: {
       }
       const id = json?.data?.id;
       if (!id) throw new Error('VT upload: missing analysis id');
+      vtRequestTotal.inc({ outcome: 'ok' });
       return id;
     },
-    { retries: 3, baseMs: 500, shouldRetry: isVtTransient },
+    { retries: 3, baseMs: 500, shouldRetry: vtShouldRetry },
   );
 }
 
@@ -143,6 +151,7 @@ export async function getFileByHash(opts: {
       }
       const analysisId = json?.data?.attributes?.last_analysis_id;
       if (!analysisId) return null;
+      vtRequestTotal.inc({ outcome: 'ok' });
       return {
         analysisId,
         stats: json.data?.attributes?.last_analysis_stats,
@@ -150,7 +159,7 @@ export async function getFileByHash(opts: {
         raw: json.data,
       };
     },
-    { retries: 3, baseMs: 500, shouldRetry: isVtTransient },
+    { retries: 3, baseMs: 500, shouldRetry: vtShouldRetry },
   );
 }
 
@@ -186,6 +195,7 @@ export async function getAnalysis(opts: {
       const rawStatus = a.status ?? 'queued';
       const status: Analysis['status'] =
         rawStatus === 'completed' ? 'completed' : rawStatus === 'queued' ? 'queued' : 'running';
+      vtRequestTotal.inc({ outcome: 'ok' });
       return {
         id,
         status,
@@ -194,6 +204,6 @@ export async function getAnalysis(opts: {
         raw: json.data,
       };
     },
-    { retries: 3, baseMs: 500, shouldRetry: isVtTransient },
+    { retries: 3, baseMs: 500, shouldRetry: vtShouldRetry },
   );
 }

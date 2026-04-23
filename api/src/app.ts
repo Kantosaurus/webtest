@@ -6,6 +6,7 @@ import { errorHandler } from './middleware/error.js';
 import { buckets } from './middleware/rateLimits.js';
 import { securityHeaders } from './middleware/securityHeaders.js';
 import { health } from './routes/health.js';
+import { metrics } from './routes/metrics.js';
 import { scans } from './routes/scans.js';
 import { scanEvents } from './routes/scanEvents.js';
 import { messages } from './routes/messages.js';
@@ -24,6 +25,7 @@ export function buildApp() {
   );
   app.use(express.json({ limit: '100kb' }));
   app.use('/', health);
+  app.use('/', metrics);
   app.use('/api/scans', buckets.global, scans);
   app.use('/api/scans', buckets.global, scanEvents);
   app.use('/api/scans', buckets.global, messages);

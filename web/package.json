@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "test:e2e": "playwright test",
-    "test:unit": "vitest run tests/unit"
+    "test:unit": "vitest run tests/unit",
+    "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.1",
@@ -33,6 +34,7 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^16.2.4",
     "@playwright/test": "^1.46.0",
     "@tailwindcss/typography": "^0.5.19",
     "@testing-library/jest-dom": "^6.9.1",

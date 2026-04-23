@@ -1,8 +1,13 @@
 'use client';
 import * as React from 'react';
+import Link from 'next/link';
 import { useQueryClient } from '@tanstack/react-query';
-import { Loader2, AlertTriangle } from 'lucide-react';
 
+/**
+ * Inline, typographic progress readout for a running or queued scan. Lives in
+ * the main chat column while the scan hasn't reached a terminal state. No
+ * card, no alert border — a calm status line with a live-dot indicator.
+ */
 export function ScanProgress({
   scanId,
   initialStatus,
@@ -44,28 +49,41 @@ export function ScanProgress({
 
   if (status === 'failed') {
     return (
-      <div
-        role="status"
-        className="flex items-center gap-3 rounded-md border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+      <p
+        role="alert"
+        className="mx-auto max-w-[720px] px-6 py-12 font-serif text-[1rem] italic leading-relaxed text-destructive md:px-10"
       >
-        <AlertTriangle className="h-4 w-4" strokeWidth={1.75} />
-        <span>Scan failed. Upload the file again to retry.</span>
-      </div>
+        <span aria-hidden className="mr-2 not-italic text-muted-foreground">—</span>
+        This scan couldn&apos;t complete. VirusTotal returned an error, or the upload timed out.{' '}
+        <Link
+          href="/"
+          className="font-sans font-medium not-italic text-primary underline decoration-[1.5px] underline-offset-[3px] hover:decoration-2"
+        >
+          Start a new scan
+        </Link>
+        .
+      </p>
     );
   }
 
-  const label =
-    status === 'queued' ? 'Queued' : status === 'running' ? 'Analyzing' : 'Working';
+  const label = status === 'queued' ? 'Queued with VirusTotal' : 'Analyzing with seventy-plus engines';
 
   return (
     <div
       role="status"
       aria-live="polite"
-      className="flex items-center gap-3 rounded-md border border-border bg-muted/40 px-4 py-3 text-sm"
+      className="mx-auto max-w-[720px] px-6 py-16 md:px-10"
     >
-      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" strokeWidth={1.75} />
-      <span className="font-medium">{label}…</span>
-      <span className="text-muted-foreground">Streaming results from VirusTotal.</span>
+      <div className="flex items-baseline gap-3 font-mono text-[0.6875rem] uppercase tracking-[0.18em] text-ink-faint">
+        <span aria-hidden className="live-dot translate-y-[2px]" />
+        <span>Scan in progress</span>
+      </div>
+      <p className="mt-4 font-serif text-[1.0625rem] leading-[1.65] text-foreground">
+        {label}. Results stream in as each engine reports.
+      </p>
+      <p className="mt-2 font-serif text-[0.9375rem] italic leading-relaxed text-muted-foreground">
+        The assistant will begin explaining the verdict as soon as the scan is terminal.
+      </p>
     </div>
   );
 }

@@ -1,11 +1,17 @@
-import { ShieldCheck } from 'lucide-react';
+import { ThemeToggle } from '@/components/theme/ThemeToggle';
 
 export function TopNav() {
   return (
-    <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-background/80 px-6 backdrop-blur-sm">
-      <div className="flex items-center gap-2 text-sm font-medium tracking-tight">
-        <ShieldCheck className="h-4 w-4 text-primary" strokeWidth={1.75} />
-        <span>scanner</span>
+    <header className="border-b border-border">
+      <div className="mx-auto flex h-12 max-w-[980px] items-center justify-between px-6 md:px-10">
+        <span
+          className="flex select-none items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground"
+          aria-label="Live — file scanning, VirusTotal and Gemini"
+        >
+          <span aria-hidden className="live-dot" />
+          File scanning <span aria-hidden className="text-ink-faint">·</span> VirusTotal <span aria-hidden>×</span> Gemini
+        </span>
+        <ThemeToggle />
       </div>
     </header>
   );

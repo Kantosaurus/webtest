@@ -1,15 +1,21 @@
 'use client';
 import * as React from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertCircle, RefreshCcw, X } from 'lucide-react';
+import { RefreshCcw, X } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 import type { Message } from '@/lib/types';
 import { MessageList } from './MessageList';
 import { Composer } from './Composer';
 import { useChatStream } from './useChatStream';
+import { SEED_CONTENT } from './MessageBubble';
 
+/**
+ * Chat is the main column of the scan page. This component is intentionally
+ * a flat surface — no Card, no header bar, no wrapping chrome. The messages
+ * region scrolls inside a fixed-height parent; the Composer pins to the
+ * bottom of that parent. Any framing (verdict rail, file strip) is owned
+ * by the page shell.
+ */
 export function ChatPanel({ scanId }: { scanId: string }) {
   const qc = useQueryClient();
   const { data: messages = [] } = useQuery({
@@ -38,7 +44,9 @@ export function ChatPanel({ scanId }: { scanId: string }) {
     [qc, scanId, send],
   );
 
-  // Seed an initial explanation on first visit when there are no messages yet.
+  // Kick off the initial explanation on first visit when there are no turns yet.
+  // The seeded user message is filtered from the rendered list (see SEED_CONTENT
+  // in MessageList) so the reader arrives mid-article.
   React.useEffect(() => {
     if (seeded.current) return;
     if (streaming) return;
@@ -47,21 +55,9 @@ export function ChatPanel({ scanId }: { scanId: string }) {
       return;
     }
     seeded.current = true;
-    void doSend('Please explain this scan result in plain language.');
+    void doSend(SEED_CONTENT);
   }, [streaming, messages.length, doSend]);
 
-  const regenerate = async () => {
-    const lastAssistant = [...messages].reverse().find((m) => m.role === 'assistant');
-    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
-    if (!lastAssistant || !lastUser) return;
-    await apiFetch(`/api/scans/${scanId}/messages/${lastAssistant.id}`, { method: 'DELETE' });
-    await qc.invalidateQueries({ queryKey: ['messages', scanId] });
-    await doSend(lastUser.content);
-  };
-
-  // When a stream errors the server did persist the user's turn but no
-  // assistant reply. Retry by deleting that orphaned user message and
-  // re-sending it, so the transcript doesn't end up with duplicates.
   const retry = async () => {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     if (!lastUser) {
@@ -71,73 +67,50 @@ export function ChatPanel({ scanId }: { scanId: string }) {
     try {
       await apiFetch(`/api/scans/${scanId}/messages/${lastUser.id}`, { method: 'DELETE' });
     } catch {
-      // Best effort — if the delete fails we'll just end up with a duplicate
-      // user bubble, which is better than blocking the retry.
+      // Best effort.
     }
     await qc.invalidateQueries({ queryKey: ['messages', scanId] });
     await doSend(lastUser.content);
   };
 
-  const canRegenerate = !streaming && !error && messages.some((m) => m.role === 'assistant');
-
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0">
-        <CardTitle className="tracking-tight">Ask about this scan</CardTitle>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => void regenerate()}
-          disabled={!canRegenerate}
-        >
-          <RefreshCcw className="mr-1 h-3 w-3" strokeWidth={1.75} />
-          Regenerate
-        </Button>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <MessageList messages={messages} streamingDraft={streaming ? draft : null} />
-        {error && (
-          <div
-            role="alert"
-            className="flex items-start gap-3 rounded-md border border-destructive/40 bg-destructive/10 p-4"
-          >
-            <AlertCircle
-              className="mt-0.5 h-4 w-4 shrink-0 text-destructive"
-              strokeWidth={1.75}
-              aria-hidden
-            />
-            <div className="min-w-0 flex-1 space-y-2">
-              <div className="space-y-0.5">
-                <p className="text-sm font-medium text-destructive">
-                  Couldn&apos;t generate a response
-                </p>
-                <p className="text-sm text-muted-foreground">{error}</p>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => void retry()}
-                  disabled={streaming}
-                >
-                  <RefreshCcw className="mr-1 h-3 w-3" strokeWidth={1.75} />
-                  Retry
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={clearError}
-                  disabled={streaming}
-                  aria-label="Dismiss error"
-                >
-                  <X className="mr-1 h-3 w-3" strokeWidth={1.75} />
-                  Dismiss
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-        <Composer onSend={(t) => void doSend(t)} onStop={stop} streaming={streaming} />
-      </CardContent>
-    </Card>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <MessageList messages={messages} streamingDraft={streaming ? draft : null} />
+
+      {error && (
+        <div role="alert" className="mx-auto w-full max-w-[720px] px-6 pb-3 md:px-10">
+          <p className="font-serif text-[0.9375rem] italic leading-relaxed text-destructive">
+            <span aria-hidden className="mr-2 not-italic text-muted-foreground">—</span>
+            The answer cut off. {error}
+            <span className="ml-3 inline-flex items-center gap-2 text-[0.8125rem] not-italic">
+              <button
+                type="button"
+                onClick={() => void retry()}
+                disabled={streaming}
+                className="inline-flex items-center gap-1 font-sans font-medium text-primary underline decoration-[1.5px] underline-offset-[3px] transition-[text-decoration-thickness,opacity] duration-150 hover:decoration-2 active:opacity-70 active:decoration-2 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)] disabled:opacity-50"
+                style={{ transitionTimingFunction: 'var(--ease-out)' }}
+              >
+                <RefreshCcw className="h-3 w-3" strokeWidth={1.75} aria-hidden />
+                Retry
+              </button>
+              <span aria-hidden className="text-ink-faint">·</span>
+              <button
+                type="button"
+                onClick={clearError}
+                disabled={streaming}
+                className="inline-flex items-center gap-1 font-sans font-medium text-muted-foreground underline decoration-[1.5px] underline-offset-[3px] transition-[text-decoration-thickness,opacity,color] duration-150 hover:decoration-2 hover:text-foreground active:opacity-70 active:decoration-2 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--ring)] disabled:opacity-50"
+                style={{ transitionTimingFunction: 'var(--ease-out)' }}
+                aria-label="Dismiss error"
+              >
+                <X className="h-3 w-3" strokeWidth={1.75} aria-hidden />
+                Dismiss
+              </button>
+            </span>
+          </p>
+        </div>
+      )}
+
+      <Composer onSend={(t) => void doSend(t)} onStop={stop} streaming={streaming} />
+    </div>
   );
 }

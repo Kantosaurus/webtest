@@ -19,6 +19,12 @@ Thumbs.db
 !.vscode/extensions.json
 .idea/
 
+# Claude Code local settings (per-user/per-project tooling)
+/.claude/
+
+# stray file from an unrelated project — keep out of this repo
+/agents.json
+
 # tests
 playwright-report/
 test-results/

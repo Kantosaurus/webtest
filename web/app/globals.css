@@ -2,67 +2,513 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  Palette tokens follow shadcn's semantic names so existing components keep
+  working. Values express the "ink + paper" editorial direction described in
+  .impeccable.md — warm cream paper and cool ink in light; warm off-white on
+  cool graphite in dark. The single restrained accent is deep ink blue; warm
+  hues are reserved for the `suspicious` verdict.
+*/
+
 @layer base {
   :root {
-    --background: oklch(0.98 0.005 250);
-    --foreground: oklch(0.18 0.02 250);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.18 0.02 250);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.18 0.02 250);
-    --primary: oklch(0.78 0.14 65);
-    --primary-foreground: oklch(0.18 0.02 250);
-    --secondary: oklch(0.95 0.008 250);
-    --secondary-foreground: oklch(0.18 0.02 250);
-    --muted: oklch(0.95 0.008 250);
-    --muted-foreground: oklch(0.50 0.018 250);
-    --accent: oklch(0.95 0.008 250);
-    --accent-foreground: oklch(0.18 0.02 250);
-    --destructive: oklch(0.58 0.21 25);
-    --destructive-foreground: oklch(0.98 0.005 250);
-    --border: oklch(0.9 0.01 250);
-    --input: oklch(0.9 0.01 250);
-    --ring: oklch(0.78 0.14 65);
-    --radius: 0.5rem;
+    /* Named easing curves so every animation picks from one vocabulary. */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 
-    --verdict-clean: oklch(0.62 0.13 155);
-    --verdict-suspicious: oklch(0.72 0.14 75);
-    --verdict-malicious: oklch(0.58 0.21 25);
+    --background: oklch(0.980 0.007 85);
+    --foreground: oklch(0.22 0.015 260);
+
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.22 0.015 260);
+
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.22 0.015 260);
+
+    --primary: oklch(0.42 0.11 260);
+    --primary-foreground: oklch(0.98 0.007 85);
+
+    --secondary: oklch(0.955 0.009 85);
+    --secondary-foreground: oklch(0.22 0.015 260);
+
+    --muted: oklch(0.955 0.009 85);
+    --muted-foreground: oklch(0.48 0.012 260);
+
+    --accent: oklch(0.955 0.009 85);
+    --accent-foreground: oklch(0.22 0.015 260);
+
+    --destructive: oklch(0.48 0.17 25);
+    --destructive-foreground: oklch(0.98 0.007 85);
+
+    --border: oklch(0.90 0.008 85);
+    --input: oklch(0.90 0.008 85);
+    --ring: oklch(0.42 0.11 260);
+
+    --radius: 0.375rem;
+
+    --ink-faint: oklch(0.64 0.010 260);
+    --surface-alt: oklch(0.965 0.008 85);
+
+    --verdict-clean: oklch(0.50 0.09 150);
+    --verdict-suspicious: oklch(0.60 0.13 75);
+    --verdict-malicious: oklch(0.48 0.17 25);
+
+    --halftone-color: oklch(0.22 0.015 260 / 0.14);
   }
 
   .dark {
-    --background: oklch(0.145 0.015 250);
-    --foreground: oklch(0.95 0.008 250);
-    --card: oklch(0.195 0.02 250);
-    --card-foreground: oklch(0.95 0.008 250);
-    --popover: oklch(0.195 0.02 250);
-    --popover-foreground: oklch(0.95 0.008 250);
-    --primary: oklch(0.78 0.14 65);
-    --primary-foreground: oklch(0.145 0.015 250);
-    --secondary: oklch(0.235 0.02 250);
-    --secondary-foreground: oklch(0.95 0.008 250);
-    --muted: oklch(0.235 0.02 250);
-    --muted-foreground: oklch(0.68 0.018 250);
-    --accent: oklch(0.235 0.02 250);
-    --accent-foreground: oklch(0.95 0.008 250);
-    --destructive: oklch(0.55 0.19 25);
-    --destructive-foreground: oklch(0.98 0.005 250);
-    --border: oklch(0.28 0.015 250);
-    --input: oklch(0.28 0.015 250);
-    --ring: oklch(0.78 0.14 65);
+    --background: oklch(0.175 0.010 260);
+    --foreground: oklch(0.94 0.008 85);
 
-    --verdict-clean: oklch(0.72 0.13 155);
-    --verdict-suspicious: oklch(0.82 0.14 75);
-    --verdict-malicious: oklch(0.68 0.21 25);
+    --card: oklch(0.215 0.012 260);
+    --card-foreground: oklch(0.94 0.008 85);
+
+    --popover: oklch(0.215 0.012 260);
+    --popover-foreground: oklch(0.94 0.008 85);
+
+    --primary: oklch(0.72 0.13 260);
+    --primary-foreground: oklch(0.175 0.010 260);
+
+    --secondary: oklch(0.250 0.012 260);
+    --secondary-foreground: oklch(0.94 0.008 85);
+
+    --muted: oklch(0.250 0.012 260);
+    --muted-foreground: oklch(0.68 0.010 260);
+
+    --accent: oklch(0.250 0.012 260);
+    --accent-foreground: oklch(0.94 0.008 85);
+
+    --destructive: oklch(0.65 0.18 25);
+    --destructive-foreground: oklch(0.94 0.008 85);
+
+    --border: oklch(0.30 0.010 260);
+    --input: oklch(0.30 0.010 260);
+    --ring: oklch(0.72 0.13 260);
+
+    --ink-faint: oklch(0.55 0.010 260);
+    --surface-alt: oklch(0.250 0.012 260);
+
+    --verdict-clean: oklch(0.70 0.10 150);
+    --verdict-suspicious: oklch(0.78 0.12 75);
+    --verdict-malicious: oklch(0.65 0.18 25);
+
+    --halftone-color: oklch(0.94 0.008 85 / 0.12);
   }
 
   * {
     border-color: var(--border);
   }
 
+  html {
+    /* Base reading size; type scale in Tailwind steps from here. */
+    font-size: 16px;
+  }
+
   body {
     background-color: var(--background);
     color: var(--foreground);
-    font-feature-settings: 'ss01', 'cv05', 'cv11';
+    font-feature-settings: 'liga', 'calt';
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklch, var(--primary), transparent 78%);
+    color: var(--foreground);
+  }
+
+  /* Serif body has slightly looser leading than the sans default. */
+  .font-serif {
+    font-feature-settings: 'liga', 'calt', 'dlig' 0, 'kern';
+  }
+
+  /* Tabular numerals on any element that uses the Geist Mono font family. */
+  .font-mono {
+    font-feature-settings: 'tnum', 'zero';
+  }
+
+  /* HalftoneField reads this via getComputedStyle(canvas).color. */
+  .halftone-field {
+    color: var(--halftone-color);
+    contain: strict;
+  }
+
+  /*
+    The hero's halftone wrapper. A radial mask gives the field an organic
+    vignette (dots cluster in the upper-left, fade at edges). A light parallax
+    translation is tied to --scroll-y (set by ScrollProgress) so the field
+    drifts down as the user scrolls — depth cue, not a decoration.
+  */
+  .hero-halftone {
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 18% 32%, #000 10%, rgba(0, 0, 0, 0.35) 55%, transparent 82%);
+    mask-image: radial-gradient(ellipse 80% 70% at 18% 32%, #000 10%, rgba(0, 0, 0, 0.35) 55%, transparent 82%);
+    transform: translate3d(0, calc(var(--scroll-y, 0) * 0.24px), 0);
+    will-change: transform;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero-halftone {
+      transform: none;
+    }
+  }
+}
+
+/*
+  Motion layer. Hero has an orchestrated entrance (headline rises line by line
+  behind a mask; deck and upload fade in behind it). A slow variable-axis
+  breath on the Literata italic word gives the page a heartbeat. Below-fold
+  sections reveal as they enter the viewport. All of this is instant when
+  `prefers-reduced-motion: reduce` is set.
+*/
+@layer utilities {
+  /* Editorial fade + lift for deck/upload; headline uses its own kinetic reveal. */
+  .editorial-enter {
+    opacity: 0;
+    transform: translateY(8px);
+    animation: editorial-enter 700ms var(--ease-out-expo) forwards;
+  }
+  .editorial-enter-1 { animation-delay: 0ms; }
+  .editorial-enter-2 { animation-delay: 260ms; }
+  .editorial-enter-3 { animation-delay: 400ms; }
+  .editorial-enter-4 { animation-delay: 520ms; }
+
+  @keyframes editorial-enter {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Per-line kinetic headline reveal. Outer `.kinetic-line` clips; inner slides up. */
+  .kinetic-line {
+    display: block;
+    overflow: hidden;
+    padding-bottom: 0.08em; /* allows descenders to clear the clip */
+  }
+  .kinetic-line-inner {
+    display: inline-block;
+    transform: translateY(110%);
+    will-change: transform;
+    animation: kinetic-rise 900ms var(--ease-out-expo) forwards;
+  }
+  .kinetic-line:nth-child(1) .kinetic-line-inner { animation-delay: 120ms; }
+  .kinetic-line:nth-child(2) .kinetic-line-inner { animation-delay: 300ms; }
+
+  @keyframes kinetic-rise {
+    to { transform: translateY(0); }
+  }
+
+  /*
+    Slow variable-axis breath on the italic display word. Only `font-weight`
+    animates — `letter-spacing` was pulled because it doubled the per-frame
+    reflow cost without adding visible character at display scale.
+  */
+  .breathe {
+    animation: breathe 14s ease-in-out 1400ms infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { font-weight: 470; }
+    50%      { font-weight: 580; }
+  }
+
+  /* Subtle width-axis breath on the display sans, half-speed, out of phase. */
+  .breathe-width {
+    animation: breathe-width 22s ease-in-out 1800ms infinite;
+  }
+  @keyframes breathe-width {
+    0%, 100% { font-stretch: 98%; }
+    50%      { font-stretch: 102%; }
+  }
+
+  /*
+    Premium drag feedback. Three layered effects:
+      - ::before renders a conic-gradient stroke that rotates on drag-over
+      - ::after (declared below in .dropzone-spotlight) renders the cursor spotlight
+      - A one-shot "wave" pulse fires on drag-enter via a third pseudo on a sibling
+  */
+  .dropzone-conic::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(
+      from var(--conic-angle, 0deg),
+      var(--primary) 0deg,
+      transparent 60deg,
+      transparent 300deg,
+      var(--primary) 360deg
+    );
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity 150ms var(--ease-out);
+    pointer-events: none;
+  }
+  .dropzone-conic[data-drag='true']::before {
+    opacity: 1;
+    animation: dropzone-conic-spin 2.4s linear infinite;
+  }
+  @property --conic-angle {
+    syntax: '<angle>';
+    inherits: false;
+    initial-value: 0deg;
+  }
+  @keyframes dropzone-conic-spin {
+    to { --conic-angle: 360deg; }
+  }
+
+  /*
+    Wave pulse that fires once when a file enters the drop zone. Transform +
+    opacity only — no box-shadow — so it composites cleanly and doesn't force
+    extra paint.
+  */
+  .dropzone-wave {
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid var(--primary);
+    opacity: 0;
+    transform: scale(1);
+    pointer-events: none;
+  }
+  .dropzone-conic[data-drag='true'] .dropzone-wave {
+    animation: dropzone-wave 700ms var(--ease-out) forwards;
+  }
+  @keyframes dropzone-wave {
+    0%   { opacity: 0.55; transform: scale(1); }
+    100% { opacity: 0;    transform: scale(1.04); }
+  }
+
+  /* Scroll-reveal: class added by a tiny IO utility on child in-view. */
+  .reveal {
+    opacity: 0;
+    transform: translateY(14px);
+    transition:
+      opacity 650ms var(--ease-out-expo),
+      transform 650ms var(--ease-out-expo);
+    will-change: opacity, transform;
+  }
+  .reveal.is-in {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /*
+    Soft spotlight that follows the cursor over the dropzone. CSS reads
+    --px/--py custom properties; a tiny JS lerp in UploadDropzone updates them
+    each rAF so the light has momentum rather than stapling to the cursor.
+  */
+  .dropzone-spotlight::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(
+      420px circle at var(--px, 50%) var(--py, 50%),
+      color-mix(in oklch, var(--primary), transparent 88%),
+      transparent 62%
+    );
+    opacity: 0;
+    transition: opacity 220ms var(--ease-out);
+    pointer-events: none;
+  }
+  .dropzone-spotlight:hover::after,
+  .dropzone-spotlight[data-drag='true']::after {
+    opacity: 1;
+  }
+
+  /*
+    LIVE-dot indicator in the TopNav eyebrow. The dot itself stays put; the
+    ::before pseudo scales + fades outward. Transform + opacity only.
+  */
+  .live-dot {
+    position: relative;
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: var(--primary);
+  }
+  .live-dot::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    background: var(--primary);
+    transform: scale(1);
+    opacity: 0.55;
+    animation: live-pulse 2.6s var(--ease-out) infinite;
+    pointer-events: none;
+  }
+  @keyframes live-pulse {
+    0%   { transform: scale(1);   opacity: 0.55; }
+    80%  { transform: scale(3.2); opacity: 0; }
+    100% { transform: scale(3.2); opacity: 0; }
+  }
+
+  /*
+    Theme toggle icon crossfade. Both Moon + Sun live absolutely stacked
+    in the button; opacity, blur, and scale are driven by `data-theme`.
+    The blur is the key — it masks the crossfade so the eye reads one
+    morphing icon instead of two fading ones (Emil's technique).
+  */
+  .theme-icon {
+    position: absolute;
+    transition:
+      opacity 180ms var(--ease-out),
+      filter 180ms var(--ease-out),
+      transform 220ms var(--ease-out);
+  }
+  [data-theme='light'] .theme-icon-moon {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1) rotate(0deg);
+  }
+  [data-theme='light'] .theme-icon-sun {
+    opacity: 0;
+    filter: blur(3px);
+    transform: scale(0.7) rotate(-45deg);
+  }
+  [data-theme='dark'] .theme-icon-moon {
+    opacity: 0;
+    filter: blur(3px);
+    transform: scale(0.7) rotate(45deg);
+  }
+  [data-theme='dark'] .theme-icon-sun {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1) rotate(0deg);
+  }
+
+  /*
+    Streaming caret. A thin vertical bar that follows the last character of
+    a streaming assistant message and fades on a loop. No hard on/off; the
+    soft fade reads as a breathing cursor rather than a terminal caret.
+  */
+  .stream-caret {
+    display: inline-block;
+    width: 0.5ch;
+    height: 1.05em;
+    vertical-align: -0.18em;
+    margin-left: 0.12em;
+    background: currentColor;
+    animation: stream-caret 900ms ease-in-out infinite;
+  }
+  @keyframes stream-caret {
+    0%, 45%  { opacity: 1; }
+    55%, 100%{ opacity: 0.15; }
+  }
+
+  /*
+    Bottom sheet (mobile scan details). Uses data-state instead of keyframe
+    animation utilities so we get a proper exit — Emil: exit ~75% of enter,
+    snappier on the way out. Drawer curve matches iOS/Ionic for the feel of
+    a physical panel.
+  */
+  .sheet-backdrop {
+    opacity: 0;
+    transition: opacity 220ms var(--ease-out);
+  }
+  .sheet-backdrop[data-state='open'] { opacity: 1; }
+  .sheet-backdrop[data-state='closing'] {
+    opacity: 0;
+    transition-duration: 180ms;
+  }
+  .sheet-panel {
+    transform: translateY(100%);
+    transition: transform 280ms var(--ease-drawer);
+    will-change: transform;
+  }
+  .sheet-panel[data-state='open'] { transform: translateY(0); }
+  .sheet-panel[data-state='closing'] {
+    transform: translateY(100%);
+    transition-duration: 200ms;
+    transition-timing-function: var(--ease-out);
+  }
+
+  /*
+    Jump-to-latest pill inside the scrolling messages region. Transition-
+    driven so new tokens arriving mid-scroll don't yank the element in.
+  */
+  .jump-to-latest {
+    opacity: 0;
+    transform: translateY(6px);
+    transition:
+      opacity 180ms var(--ease-out),
+      transform 180ms var(--ease-out);
+    pointer-events: none;
+  }
+  .jump-to-latest[data-state='open'] {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+
+  /*
+    Composer keyboard hint (kbd). Fades in on focus-within without snapping
+    display state; Emil's blur-ish state-change pattern at small scale.
+  */
+  .composer-kbd {
+    opacity: 0;
+    transform: translateX(2px);
+    transition:
+      opacity 160ms var(--ease-out),
+      transform 160ms var(--ease-out);
+    pointer-events: none;
+  }
+  .composer-field:focus-within .composer-kbd {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  /* Reading progress hairline at the very top of the viewport. */
+  .scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 1px;
+    width: 100%;
+    transform-origin: 0 50%;
+    transform: scaleX(var(--scroll-progress, 0));
+    background: var(--primary);
+    z-index: 50;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .editorial-enter,
+    .kinetic-line-inner,
+    .reveal {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
+      transition: none !important;
+    }
+    .breathe,
+    .breathe-width,
+    .dropzone-conic[data-drag='true']::before,
+    .dropzone-conic[data-drag='true'] .dropzone-wave,
+    .live-dot::before,
+    .stream-caret {
+      animation: none !important;
+    }
+    .sheet-backdrop,
+    .sheet-panel,
+    .jump-to-latest,
+    .composer-kbd {
+      transition: none !important;
+    }
+    .dropzone-spotlight::after { display: none; }
+    .scroll-progress { display: none; }
   }
 }

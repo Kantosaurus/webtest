@@ -5,10 +5,17 @@ import typography from '@tailwindcss/typography';
 const config: Config = {
   darkMode: 'class',
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}'],
+  future: {
+    // `hover:` utilities only fire on input devices that actually support
+    // hover (i.e., mice). Prevents the stuck-hover artifact after a tap on
+    // touch devices.
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-commissioner)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-bricolage)', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        serif: ['var(--font-literata)', 'ui-serif', 'Georgia', 'serif'],
         mono: ['var(--font-geist-mono)', 'ui-monospace', 'SFMono-Regular', 'monospace'],
       },
       colors: {
@@ -17,6 +24,8 @@ const config: Config = {
         ring: 'var(--ring)',
         background: 'var(--background)',
         foreground: 'var(--foreground)',
+        'surface-alt': 'var(--surface-alt)',
+        'ink-faint': 'var(--ink-faint)',
         primary: { DEFAULT: 'var(--primary)', foreground: 'var(--primary-foreground)' },
         secondary: { DEFAULT: 'var(--secondary)', foreground: 'var(--secondary-foreground)' },
         muted: { DEFAULT: 'var(--muted)', foreground: 'var(--muted-foreground)' },

@@ -3,7 +3,7 @@ import pinoHttp from 'pino-http';
 import { logger } from './logger.js';
 import { requestId } from './middleware/requestId.js';
 import { errorHandler } from './middleware/error.js';
-import { apiLimiter } from './middleware/rateLimit.js';
+import { buckets } from './middleware/rateLimits.js';
 import { health } from './routes/health.js';
 import { scans } from './routes/scans.js';
 import { scanEvents } from './routes/scanEvents.js';
@@ -22,9 +22,9 @@ export function buildApp() {
   );
   app.use(express.json({ limit: '100kb' }));
   app.use('/', health);
-  app.use('/api/scans', apiLimiter, scans);
-  app.use('/api/scans', apiLimiter, scanEvents);
-  app.use('/api/scans', apiLimiter, messages);
+  app.use('/api/scans', buckets.global, scans);
+  app.use('/api/scans', buckets.global, scanEvents);
+  app.use('/api/scans', buckets.global, messages);
   app.use(errorHandler);
   return app;
 }

@@ -8,6 +8,7 @@ import { listMessages, appendMessage, removeMessage } from '../services/messages
 import { buildGeminiPrompt, type ScanContext } from '../lib/promptBuilder.js';
 import { createGeminiClient } from '../services/gemini.js';
 import { logger } from '../logger.js';
+import { buckets } from '../middleware/rateLimits.js';
 
 export const messages = Router();
 
@@ -118,5 +119,5 @@ const remove: RequestHandler = (req, res, next) => {
 };
 
 messages.get('/:id/messages', list);
-messages.post('/:id/messages', post);
+messages.post('/:id/messages', buckets.chat, post);
 messages.delete('/:id/messages/:msgId', remove);

@@ -10,6 +10,7 @@ import {
   VtAlreadySubmittedError,
 } from '../services/virustotal.js';
 import { createScan, getScan, updateScanStatus } from '../services/scans.js';
+import { buckets } from '../middleware/rateLimits.js';
 
 export const scans = Router();
 
@@ -137,7 +138,7 @@ const uploadHandler: RequestHandler = (req, res, next) => {
   req.pipe(bb);
 };
 
-scans.post('/', uploadHandler);
+scans.post('/', buckets.upload, buckets.uploadHourly, uploadHandler);
 
 scans.get('/:id', (req, res, next) => {
   const id = req.params.id;

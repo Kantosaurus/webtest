@@ -167,4 +167,60 @@ describe('virustotal client', () => {
     const r = await getFileByHash({ apiKey: 'k', hash: 'no-analysis' });
     expect(r).toBeNull();
   });
+
+  it('retries uploadToVt on 5xx and eventually succeeds', async () => {
+    let call = 0;
+    server.use(
+      http.post('https://www.virustotal.com/api/v3/files', () => {
+        call++;
+        if (call < 3) {
+          return HttpResponse.json({ error: { message: 'upstream' } }, { status: 503 });
+        }
+        return HttpResponse.json({ data: { id: 'a-retry' } });
+      }),
+    );
+    const id = await uploadToVt({
+      apiKey: 'k',
+      filename: 'f',
+      stream: Readable.from(Buffer.from('x')),
+    });
+    expect(id).toBe('a-retry');
+    expect(call).toBe(3);
+  });
+
+  it('does not retry uploadToVt on 401 client errors', async () => {
+    let call = 0;
+    server.use(
+      http.post('https://www.virustotal.com/api/v3/files', () => {
+        call++;
+        return HttpResponse.json({ error: { message: 'unauthorized' } }, { status: 401 });
+      }),
+    );
+    await expect(
+      uploadToVt({ apiKey: 'bad', filename: 'f', stream: Readable.from(Buffer.from('x')) }),
+    ).rejects.toThrow();
+    expect(call).toBe(1);
+  });
+
+  it('retries getAnalysis on 429 and eventually succeeds', async () => {
+    let call = 0;
+    server.use(
+      http.get('https://www.virustotal.com/api/v3/analyses/a-rate', () => {
+        call++;
+        if (call < 2) return HttpResponse.json({ error: { message: 'rate' } }, { status: 429 });
+        return HttpResponse.json({
+          data: {
+            id: 'a-rate',
+            attributes: {
+              status: 'completed',
+              stats: { malicious: 0, suspicious: 0, undetected: 1, harmless: 0 },
+            },
+          },
+        });
+      }),
+    );
+    const r = await getAnalysis({ apiKey: 'k', analysisId: 'a-rate' });
+    expect(r.status).toBe('completed');
+    expect(call).toBe(2);
+  });
 });

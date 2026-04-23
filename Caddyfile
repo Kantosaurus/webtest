@@ -2,10 +2,33 @@
   email {$ACME_EMAIL}
 }
 
+(shared_headers) {
+  header {
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    -Server
+    -X-Powered-By
+  }
+}
+
+(html_csp) {
+  header / {
+    Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+  }
+}
+
 # Production: auto-HTTPS for the configured public hostname.
-# Caddy redirects HTTP → HTTPS automatically for this specific host.
 {$PUBLIC_HOSTNAME} {
+  import shared_headers
+  import html_csp
+  header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
   encode gzip zstd
+
+  @static path /_next/static/*
+  header @static Cache-Control "public, max-age=31536000, immutable"
+
   reverse_proxy web:3000 {
     header_up Host {host}
     header_up X-Real-IP {remote_host}
@@ -14,11 +37,14 @@
   }
 }
 
-# Local dev catch-all: any HTTP host that isn't the production domain
-# (e.g. http://localhost) is served plain HTTP from the web container.
-# Caddy prefers the more-specific {$PUBLIC_HOSTNAME} block over this one,
-# so production behavior is unaffected.
+# Local dev catch-all — plain HTTP, same security headers minus HSTS.
 :80 {
+  import shared_headers
+  import html_csp
+
+  @static path /_next/static/*
+  header @static Cache-Control "public, max-age=31536000, immutable"
+
   reverse_proxy web:3000 {
     header_up Host {host}
     header_up X-Real-IP {remote_host}

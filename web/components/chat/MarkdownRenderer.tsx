@@ -35,6 +35,10 @@ export function MarkdownRenderer({ text }: { text: string }) {
         'prose-blockquote:font-serif prose-blockquote:italic prose-blockquote:text-muted-foreground prose-blockquote:border-border',
       ].join(' ')}
     >
+      {/* Do NOT add `rehype-raw` here — it would allow raw HTML from model
+          output, which is a source of XSS issues. react-markdown's default
+          pipeline sanitizes; invariants are locked in
+          tests/unit/MarkdownRenderer.test.tsx. */}
       <Markdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
         {text}
       </Markdown>

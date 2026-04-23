@@ -23,7 +23,7 @@ test.describe('smoke', () => {
     await page.locator('input[type="file"]').setInputFiles(SAMPLE_FILE);
     await page.waitForURL(/\/scans\/.+/, { timeout: 30_000 });
     await expect(page.getByText(/scan result/i)).toBeVisible({ timeout: 180_000 });
-    await expect(page.getByRole('heading', { name: /ask about this scan/i })).toBeVisible({
+    await expect(page.getByRole('textbox', { name: /message the assistant/i })).toBeVisible({
       timeout: 30_000,
     });
     const assistantProse = page.locator('.prose').first();

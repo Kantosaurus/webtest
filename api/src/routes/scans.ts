@@ -23,10 +23,17 @@ const uploadHandler: RequestHandler = (req, res, next) => {
 
   const contentLength = Number(req.headers['content-length'] ?? '0');
   if (Number.isFinite(contentLength) && contentLength > MAX_BYTES + 1024) {
-    // Drain and reject early — prevents streaming a huge payload to VT.
+    // Drain remaining bytes (keeps the socket writable long enough to send
+    // the 413 response) and reject. The connection closes after the response.
     req.on('data', () => undefined);
     return next(Errors.tooLarge());
   }
+
+  // Upload socket timeout: 60 seconds of no progress → abort.
+  // Protects against slow-drip attacks that dribble bytes under the size cap.
+  req.setTimeout(60_000, () => {
+    req.destroy();
+  });
 
   const bb = Busboy({ headers: req.headers, limits: { files: 1, fileSize: MAX_BYTES } });
   let handled = false;

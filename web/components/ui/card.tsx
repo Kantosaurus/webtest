@@ -15,9 +15,9 @@ export const CardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<
   ({ className, ...p }, ref) => <div ref={ref} className={cn('flex flex-col gap-1.5 p-6', className)} {...p} />,
 );
 CardHeader.displayName = 'CardHeader';
-export const CardTitle = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+export const CardTitle = React.forwardRef<HTMLHeadingElement, React.HTMLAttributes<HTMLHeadingElement>>(
   ({ className, ...p }, ref) => (
-    <div ref={ref} className={cn('font-semibold leading-none tracking-tight', className)} {...p} />
+    <h3 ref={ref} className={cn('font-semibold leading-none tracking-tight', className)} {...p} />
   ),
 );
 CardTitle.displayName = 'CardTitle';

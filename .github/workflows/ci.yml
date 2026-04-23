@@ -30,6 +30,10 @@ jobs:
         run: npm test
         env:
           NODE_ENV: test
+      - name: Coverage gate
+        run: npm run test:cov
+        env:
+          NODE_ENV: test
 
   web:
     name: web · lint + typecheck + build

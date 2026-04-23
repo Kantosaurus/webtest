@@ -4,6 +4,7 @@ import { logger } from './logger.js';
 import { requestId } from './middleware/requestId.js';
 import { errorHandler } from './middleware/error.js';
 import { buckets } from './middleware/rateLimits.js';
+import { securityHeaders } from './middleware/securityHeaders.js';
 import { health } from './routes/health.js';
 import { scans } from './routes/scans.js';
 import { scanEvents } from './routes/scanEvents.js';
@@ -13,6 +14,7 @@ export function buildApp() {
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
+  app.use(securityHeaders);
   app.use(requestId);
   app.use(
     pinoHttp({

@@ -27,3 +27,15 @@ export function createGeminiClient(opts: CreateGeminiClientOpts): GeminiClient {
     },
   };
 }
+
+type Factory = typeof createGeminiClient;
+let factoryOverride: Factory | null = null;
+
+/** Test-only: swap in a stub factory. Pass null to restore the default. */
+export function __setGeminiFactoryForTests(f: Factory | null): void {
+  factoryOverride = f;
+}
+
+export function resolveGeminiFactory(): Factory {
+  return factoryOverride ?? createGeminiClient;
+}

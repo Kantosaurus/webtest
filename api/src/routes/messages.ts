@@ -6,7 +6,7 @@ import { SseWriter } from '../lib/sse.js';
 import { getScan } from '../services/scans.js';
 import { listMessages, appendMessage, removeMessage } from '../services/messages.js';
 import { buildGeminiPrompt, type ScanContext } from '../lib/promptBuilder.js';
-import { createGeminiClient } from '../services/gemini.js';
+import { resolveGeminiFactory } from '../services/gemini.js';
 import { logger } from '../logger.js';
 import { buckets } from '../middleware/rateLimits.js';
 
@@ -80,7 +80,7 @@ const post: RequestHandler = async (req, res, next) => {
   const controller = new AbortController();
   req.on('close', () => controller.abort());
 
-  const client = createGeminiClient({
+  const client = resolveGeminiFactory()({
     apiKey: config.GEMINI_API_KEY,
     model: config.GEMINI_MODEL,
   });

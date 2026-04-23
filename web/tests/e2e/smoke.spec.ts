@@ -30,4 +30,19 @@ test.describe('smoke', () => {
     await expect(assistantProse).toBeVisible({ timeout: 90_000 });
     await expect(assistantProse).not.toBeEmpty({ timeout: 90_000 });
   });
+
+  test('reload preserves scan and chat within TTL', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('input[type="file"]').setInputFiles(SAMPLE_FILE);
+    await page.waitForURL(/\/scans\/.+/, { timeout: 30_000 });
+    await expect(page.getByText(/scan result/i)).toBeVisible({ timeout: 180_000 });
+
+    const assistantProse = page.locator('.prose').first();
+    await expect(assistantProse).toBeVisible({ timeout: 90_000 });
+    await expect(assistantProse).not.toBeEmpty({ timeout: 90_000 });
+
+    await page.reload();
+    await expect(page.getByText(/scan result/i)).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator('.prose').first()).toBeVisible({ timeout: 30_000 });
+  });
 });

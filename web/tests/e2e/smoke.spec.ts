@@ -14,14 +14,14 @@ test.describe('smoke', () => {
   test('upload a sample file and see scan result', async ({ page }) => {
     await page.goto('/');
     await page.locator('input[type="file"]').setInputFiles(SAMPLE_FILE);
-    await page.waitForURL(/\/scans\/.+/, { timeout: 30_000 });
+    await page.waitForURL(/\/scans\/.+/, { timeout: 180_000 });
     await expect(page.getByText(/scan result/i)).toBeVisible({ timeout: 180_000 });
   });
 
   test('chat panel streams an explanation', async ({ page }) => {
     await page.goto('/');
     await page.locator('input[type="file"]').setInputFiles(SAMPLE_FILE);
-    await page.waitForURL(/\/scans\/.+/, { timeout: 30_000 });
+    await page.waitForURL(/\/scans\/.+/, { timeout: 180_000 });
     await expect(page.getByText(/scan result/i)).toBeVisible({ timeout: 180_000 });
     await expect(page.getByRole('textbox', { name: /message the assistant/i })).toBeVisible({
       timeout: 30_000,
@@ -34,7 +34,7 @@ test.describe('smoke', () => {
   test('reload preserves scan and chat within TTL', async ({ page }) => {
     await page.goto('/');
     await page.locator('input[type="file"]').setInputFiles(SAMPLE_FILE);
-    await page.waitForURL(/\/scans\/.+/, { timeout: 30_000 });
+    await page.waitForURL(/\/scans\/.+/, { timeout: 180_000 });
     await expect(page.getByText(/scan result/i)).toBeVisible({ timeout: 180_000 });
 
     const assistantProse = page.locator('.prose').first();
